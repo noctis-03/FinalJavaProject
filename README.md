@@ -1,4 +1,4 @@
-![메인 배너 이미지](images/p-main/main.png)
+![메인 배너 이미지](images/main/main.png)
 
 
 ## 📋 2026 자바 프로그래밍 프로젝트 정보
