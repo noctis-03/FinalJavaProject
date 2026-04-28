@@ -78,7 +78,7 @@
 > **공공 데이터 포탈 (https://www.data.go.kr/) 에서의 다양한 교육에 대한 오픈 api 및 데이터 할용을 고려할 수 있다.**
 
 ### 사용 기술 스택 :
-언어 : Java (Java Swing)
+언어 : Java (Java Swing)  
 버전 관리: Git & GitHub  
 
 ---
