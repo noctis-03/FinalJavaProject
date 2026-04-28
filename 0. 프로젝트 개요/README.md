@@ -82,6 +82,8 @@ HI-class api와의 연동을 고려해 보았으나 현재 LearningX에서의 ap
 프레임워크 : JavaFX (가능하다면) / Swing / Spring / Spring Boot
 버전 관리: Git & GitHub
 
+---
+
 ## 4. 팀 구성 및 GitHub 
 | 이름 | 학번 | 역할 |
 |---|---|---|
