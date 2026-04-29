@@ -1,8 +1,8 @@
 ![메인 배너 이미지](source/images/main/main.png)
 
 > [!CAUTION]
-> 프로젝트에 html이 포함되어 있는 이유는 github pages 생성을 위한 index.html을 파일을 만들었기 때문입니다.  
-> 
+> 프로젝트에 html이 포함되어 있는 이유 ： github pages 생성을 위한 index.html 파일 때문입니다.  
+
 ## 📋 18조 자바 프로그래밍 프로젝트 정보 (개인)
 
 | 항목 | 내용 |
