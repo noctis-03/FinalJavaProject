@@ -3,59 +3,297 @@
 <head>
   <meta charset="UTF-8">
   <title>발표 자료 모음</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Noto+Serif+KR:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Apple SD Gothic Neo', sans-serif;
-      max-width: 1000px;
-      margin: 60px auto;
-      padding: 20px;
-      background: #fafafa;
-      color: #222;
+    :root {
+      --cream: #F5F0E8;
+      --warm-white: #FAF8F4;
+      --orange: #D97757;
+      --orange-soft: #E8896A;
+      --orange-pale: #F5E6DF;
+      --charcoal: #2C2825;
+      --muted: #8C7E72;
+      --border: #E2D9CE;
+      --border-hover: #C4A897;
     }
-    h1 { font-size: 22px; font-weight: 600; margin-bottom: 32px; }
 
-    .container { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    .section h2 {
-      font-size: 13px;
-      font-weight: 600;
+    body {
+      font-family: 'Noto Serif KR', Georgia, serif;
+      background: var(--cream);
+      color: var(--charcoal);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Subtle grain texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 80px 32px 120px;
+    }
+
+    /* Top accent line */
+    .accent-line {
+      width: 40px;
+      height: 2px;
+      background: var(--orange);
+      margin-bottom: 36px;
+      animation: grow 0.6s ease forwards;
+    }
+    @keyframes grow {
+      from { width: 0; opacity: 0; }
+      to { width: 40px; opacity: 1; }
+    }
+
+    .header {
+      margin-bottom: 64px;
+      animation: fadeUp 0.7s ease both;
+    }
+
+    .label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #999;
+      color: var(--orange);
       margin-bottom: 12px;
     }
 
-    .card {
-      display: block;
-      padding: 14px 16px;
-      margin: 6px 0;
-      background: #fff;
-      border: 1px solid #eee;
-      border-radius: 8px;
-      text-decoration: none;
-      color: #222;
-      font-size: 14px;
-      transition: border-color 0.2s;
+    h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 400;
+      line-height: 1.15;
+      color: var(--charcoal);
+      letter-spacing: -0.5px;
     }
-    .card:hover { border-color: #999; }
+
+    h1 em {
+      font-style: italic;
+      color: var(--orange-soft);
+    }
+
+    .subtitle {
+      margin-top: 14px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 300;
+      line-height: 1.7;
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      animation: fadeUp 0.8s 0.15s ease both;
+    }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 18px 20px;
+      margin: 8px 0;
+      background: var(--warm-white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-decoration: none;
+      color: var(--charcoal);
+      font-size: 14px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--orange);
+      transform: scaleY(0);
+      transform-origin: bottom;
+      transition: transform 0.25s ease;
+      border-radius: 0 2px 2px 0;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+      background: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(44, 40, 37, 0.08);
+    }
+
+    .card:hover::before {
+      transform: scaleY(1);
+    }
+
+    .card-icon {
+      width: 34px;
+      height: 34px;
+      background: var(--orange-pale);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+      transition: background 0.25s;
+    }
+
+    .card:hover .card-icon {
+      background: var(--orange);
+    }
+
+    .card-body {
+      flex: 1;
+    }
+
+    .card-title {
+      font-weight: 500;
+      color: var(--charcoal);
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .card-arrow {
+      font-size: 12px;
+      color: var(--border-hover);
+      align-self: center;
+      transition: transform 0.2s, color 0.2s;
+    }
+
+    .card:hover .card-arrow {
+      transform: translateX(3px);
+      color: var(--orange);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: fadeUp 0.9s 0.3s ease both;
+    }
+
+    .footer-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--orange);
+      border-radius: 50%;
+    }
+
+    .footer-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; gap: 36px; }
+      .wrapper { padding: 60px 20px 80px; }
+    }
   </style>
 </head>
 <body>
+  <div class="wrapper">
 
-  <h1>발표 자료 모음</h1>
+    <div class="accent-line"></div>
 
-  <div class="container">
-    <div class="section">
-      <h2>발표자료</h2>
-      <a class="card" href="docs/project_overview/project-overview.pdf">📄 프로젝트 개요</a>
+    <div class="header">
+      <div class="label">자료 허브</div>
+      <h1>발표 자료 <em>모음</em></h1>
+      <p class="subtitle">프로젝트 관련 발표 자료와 AI 활용 내역을 한 곳에서 확인하세요.</p>
     </div>
 
-    <div class="section">
-      <h2>AI 사용 내역</h2>
-      <a class="card" href="#">💬 AI 활용 내역</a>
+    <div class="grid">
+      <div class="section">
+        <div class="section-label">발표자료</div>
+
+        <a class="card" href="docs/project_overview/project-overview.pdf">
+          <div class="card-icon">📄</div>
+          <div class="card-body">
+            <div class="card-title">프로젝트 개요</div>
+            <div class="card-desc">프로젝트 전체 개요 및 방향성</div>
+          </div>
+          <span class="card-arrow">→</span>
+        </a>
+
+        <a class="card" href="#">
+          <div class="card-icon">📊</div>
+          <div class="card-body">
+            <div class="card-title">최종 발표 슬라이드</div>
+            <div class="card-desc">결과 정리 및 발표용 슬라이드</div>
+          </div>
+          <span class="card-arrow">→</span>
+        </a>
+
+      </div>
+
+      <div class="section">
+        <div class="section-label">AI 사용 내역</div>
+
+        <a class="card" href="#">
+          <div class="card-icon">💬</div>
+          <div class="card-body">
+            <div class="card-title">AI 활용 내역</div>
+            <div class="card-desc">프로젝트 내 AI 도구 사용 기록</div>
+          </div>
+          <span class="card-arrow">→</span>
+        </a>
+
+      </div>
     </div>
+
+    <div class="footer">
+      <div class="footer-dot"></div>
+      <span class="footer-text">발표 자료 모음 · 2025</span>
+    </div>
+
   </div>
-
 </body>
 </html>
