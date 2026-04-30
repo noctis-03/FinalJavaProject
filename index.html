@@ -6,102 +6,55 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      max-width: 1100px;
-      margin: 40px auto;
+      font-family: 'Apple SD Gothic Neo', sans-serif;
+      max-width: 1000px;
+      margin: 60px auto;
       padding: 20px;
-      background: #f0f2f5;
+      background: #fafafa;
+      color: #222;
     }
-    h1 { text-align: center; margin-bottom: 30px; color: #1a1a2e; }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 32px; }
 
-    .container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-    .section {
-      background: #fff;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
+    .container { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+
     .section h2 {
-      font-size: 20px;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #eee;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #999;
+      margin-bottom: 12px;
     }
-    .section.left h2 { color: #2563eb; }
-    .section.right h2 { color: #9333ea; }
 
-    /* 묶음 */
-    .group {
-      margin: 14px 0;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .group-title {
-      font-size: 14px;
-      font-weight: 700;
-      padding: 10px 16px;
-      background: #f1f3f5;
-      color: #555;
-    }
-    .section.left .group-title { border-left: 4px solid #2563eb; }
-    .section.right .group-title { border-left: 4px solid #9333ea; }
-
-    /* 카드 */
     .card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 13px 16px;
+      display: block;
+      padding: 14px 16px;
+      margin: 6px 0;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 8px;
       text-decoration: none;
-      color: #333;
-      font-size: 15px;
-      border-top: 1px solid #eee;
-      transition: all 0.2s;
+      color: #222;
+      font-size: 14px;
+      transition: border-color 0.2s;
     }
-    .card:first-child { border-top: none; }
-    .card .icon { font-size: 24px; flex-shrink: 0; }
-
-    .section.left .card:hover { background: #eff6ff; }
-    .section.right .card:hover { background: #faf5ff; }
+    .card:hover { border-color: #999; }
   </style>
 </head>
 <body>
 
-  <h1>📁 발표 자료 모음</h1>
+  <h1>발표 자료 모음</h1>
 
   <div class="container">
-
-    <!-- 왼쪽: 발표자료 -->
-    <div class="section left">
+    <div class="section">
       <h2>발표자료</h2>
-
-      <div class="group">
-        <div class="group-title">기획</div>
-        <a class="card" href="#"><span class="icon">📄</span> 프로젝트 개요</a>
-        <a class="card" href="#"><span class="icon">📄</span> .</a>
-      </div>
-
-      <div class="group">
-        <div class="group-title">중간 발표</div>
-        <a class="card" href="#"><span class="icon">📊</span> .</a>
-        <a class="card" href="#"><span class="icon">📋</span> .</a>
-      </div>
-
-    
+      <a class="card" href="docs/project_overview/project-overview.pdf">📄 프로젝트 개요</a>
     </div>
 
-    <!-- 오른쪽: AI 사용 내역 -->
-    <div class="section right">
+    <div class="section">
       <h2>AI 사용 내역</h2>
-
-
+      <a class="card" href="#">💬 AI 활용 내역</a>
     </div>
-
   </div>
 
 </body>
