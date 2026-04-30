@@ -25,83 +25,18 @@
       background: var(--cream);
       color: var(--charcoal);
       min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Subtle grain texture overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.6;
     }
 
     .wrapper {
-      position: relative;
-      z-index: 1;
       max-width: 860px;
       margin: 0 auto;
       padding: 80px 32px 120px;
     }
 
-    /* Top accent line */
-    .accent-line {
-      width: 40px;
-      height: 2px;
-      background: var(--orange);
-      margin-bottom: 36px;
-      animation: grow 0.6s ease forwards;
-    }
-    @keyframes grow {
-      from { width: 0; opacity: 0; }
-      to { width: 40px; opacity: 1; }
-    }
-
-    .header {
-      margin-bottom: 64px;
-      animation: fadeUp 0.7s ease both;
-    }
-
-    .label {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--orange);
-      margin-bottom: 12px;
-    }
-
-    h1 {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(32px, 5vw, 48px);
-      font-weight: 400;
-      line-height: 1.15;
-      color: var(--charcoal);
-      letter-spacing: -0.5px;
-    }
-
-    h1 em {
-      font-style: italic;
-      color: var(--orange-soft);
-    }
-
-    .subtitle {
-      margin-top: 14px;
-      font-size: 14px;
-      color: var(--muted);
-      font-weight: 300;
-      line-height: 1.7;
-    }
-
-    /* Grid */
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 48px;
-      animation: fadeUp 0.8s 0.15s ease both;
     }
 
     .section-label {
@@ -203,36 +138,6 @@
       color: var(--orange);
     }
 
-    /* Footer */
-    .footer {
-      margin-top: 80px;
-      padding-top: 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      animation: fadeUp 0.9s 0.3s ease both;
-    }
-
-    .footer-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--orange);
-      border-radius: 50%;
-    }
-
-    .footer-text {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.5px;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     @media (max-width: 600px) {
       .grid { grid-template-columns: 1fr; gap: 36px; }
       .wrapper { padding: 60px 20px 80px; }
@@ -241,15 +146,6 @@
 </head>
 <body>
   <div class="wrapper">
-
-    <div class="accent-line"></div>
-
-    <div class="header">
-      <div class="label">자바프로그래밍</div>
-      <h1>자료 모음</h1>
-      
-    </div>
-
     <div class="grid">
       <div class="section">
         <div class="section-label">발표자료</div>
@@ -262,23 +158,12 @@
           </div>
           <span class="card-arrow">→</span>
         </a>
-
-        
-
       </div>
 
       <div class="section">
         <div class="section-label">AI 사용 내역</div>
-
-    
       </div>
     </div>
-
-    <div class="footer">
-      <div class="footer-dot"></div>
-      <span class="footer-text">발표 자료 모음 · 2025</span>
-    </div>
-
   </div>
 </body>
 </html>
