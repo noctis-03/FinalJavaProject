@@ -4,37 +4,105 @@
   <meta charset="UTF-8">
   <title>발표 자료 모음</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      max-width: 700px;
-      margin: 50px auto;
+      max-width: 1100px;
+      margin: 40px auto;
       padding: 20px;
-      background: #f5f5f5;
+      background: #f0f2f5;
     }
-    h1 { margin-bottom: 30px; }
-    a {
-      display: block;
-      padding: 15px 20px;
-      margin: 10px 0;
+    h1 { text-align: center; margin-bottom: 30px; color: #1a1a2e; }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .section {
       background: #fff;
-      border-radius: 8px;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .section h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eee;
+    }
+    .section.left h2 { color: #2563eb; }
+    .section.right h2 { color: #9333ea; }
+
+    /* 묶음 */
+    .group {
+      margin: 14px 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .group-title {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 16px;
+      background: #f1f3f5;
+      color: #555;
+    }
+    .section.left .group-title { border-left: 4px solid #2563eb; }
+    .section.right .group-title { border-left: 4px solid #9333ea; }
+
+    /* 카드 */
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
       text-decoration: none;
       color: #333;
-      font-size: 18px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: transform 0.1s;
+      font-size: 15px;
+      border-top: 1px solid #eee;
+      transition: all 0.2s;
     }
-    a:hover {
-      transform: translateX(5px);
-      background: #e8f0fe;
-    }
+    .card:first-child { border-top: none; }
+    .card .icon { font-size: 24px; flex-shrink: 0; }
+
+    .section.left .card:hover { background: #eff6ff; }
+    .section.right .card:hover { background: #faf5ff; }
   </style>
 </head>
 <body>
-  <h1>발표 자료 모음</h1>
 
-  <!-- PDF 추가할 때마다 아래에 한 줄씩 추가 -->
-  <a href="docs/project_overview/project-overview.pdf">📄 프로젝트 개요 </a>
- 
+  <h1>📁 발표 자료 모음</h1>
+
+  <div class="container">
+
+    <!-- 왼쪽: 발표자료 -->
+    <div class="section left">
+      <h2>발표자료</h2>
+
+      <div class="group">
+        <div class="group-title">기획</div>
+        <a class="card" href="#"><span class="icon">📄</span> 프로젝트 개요</a>
+        <a class="card" href="#"><span class="icon">📄</span> .</a>
+      </div>
+
+      <div class="group">
+        <div class="group-title">중간 발표</div>
+        <a class="card" href="#"><span class="icon">📊</span> .</a>
+        <a class="card" href="#"><span class="icon">📋</span> .</a>
+      </div>
+
+    
+    </div>
+
+    <!-- 오른쪽: AI 사용 내역 -->
+    <div class="section right">
+      <h2>AI 사용 내역</h2>
+
+
+    </div>
+
+  </div>
+
 </body>
 </html>
