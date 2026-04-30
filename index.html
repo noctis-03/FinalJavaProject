@@ -139,10 +139,6 @@
       transition: background 0.15s;
     }
 
-    .card:hover .card-icon {
-      background: var(--red);
-    }
-
     .card-body {
       flex: 1;
     }
@@ -173,7 +169,7 @@
 
     .card:hover .card-arrow {
       transform: translateX(4px);
-      color: var(--red);
+
     }
 
     .card.blue-accent .card-icon {
@@ -184,6 +180,12 @@
     }
     .card.blue-accent:hover .card-arrow {
       color: var(--blue);
+    }
+
+    /* 빈 카드 - 공간만 차지하고 보이지 않음 */
+    .card.empty {
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .stamp {
@@ -219,43 +221,85 @@
     <div class="section">
       <div class="section-label">발표자료</div>
 
-
+      <!-- 발표자료 여기에 추가 -->
       <a class="card" href="docs/project_overview/project-overview.pdf">
-        <div class="card-icon">📄</div>
+        <div class="card-icon">1-1</div>
         <div class="card-body">
-          <div class="card-title">1. 프로젝트 개요</div>
+          <div class="card-title">프로젝트 개요</div>
           <div class="card-desc">발표자료</div>
         </div>
         <span class="card-arrow">→</span>
       </a>
 
+      <a class="card" href="docs/project_overview/README.md">
+        <div class="card-icon">1-2</div>
+        <div class="card-body">
+          <div class="card-title">프로젝트 개요</div>
+          <div class="card-desc">md 파일</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
 
+      <!-- 빈 카드: 카드 한 칸 크기만큼 빈 공간 -->
+      <div class="card empty">
+        <div class="card-icon">　</div>
+        <div class="card-body">
+          <div class="card-title">　</div>
+          <div class="card-desc">　</div>
+        </div>
+      </div>
 
+      <a class="card" href="#">
+        <div class="card-icon">2-1</div>
+        <div class="card-body">
+          <div class="card-title">진행중</div>
+          <div class="card-desc">진행중</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
 
-
-
-
-
+      <!-- 발표자료 마지막 -->
     </div>
 
     <div class="section">
-      <div class="section-label blue-accent">AI 사용 내역</div>
-
+      <div class="section-label">AI 사용 내역</div>
+      <!-- AI 여기에 추가 -->
       <a class="card" href="AI사용내역/ai 사용 내역 프로젝트 개요.pdf">
-        <div class="card-icon">🤖</div>
+        <div class="card-icon">1-1</div>
         <div class="card-body">
-          <div class="card-title">1. 프로젝트 개요 </div>
+          <div class="card-title">프로젝트 개요</div>
           <div class="card-desc">Ai 사용 내역</div>
         </div>
         <span class="card-arrow">→</span>
       </a>
 
+      <!-- 빈 카드: 카드 한 칸 크기만큼 빈 공간 -->
+      <div class="card empty">
+        <div class="card-icon">　</div>
+        <div class="card-body">
+          <div class="card-title">　</div>
+          <div class="card-desc">　</div>
+        </div>
+      </div>
 
+      <!-- 빈 카드: 카드 한 칸 크기만큼 빈 공간 -->
+      <div class="card empty">
+        <div class="card-icon">　</div>
+        <div class="card-body">
+          <div class="card-title">　</div>
+          <div class="card-desc">　</div>
+        </div>
+      </div>
 
-
-
-
-
+      <a class="card" href="#">
+        <div class="card-icon">2-1</div>
+        <div class="card-body">
+          <div class="card-title">진행중</div>
+          <div class="card-desc">진행중</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
+      <!-- AI 끝 -->
     </div>
   </div>
 
