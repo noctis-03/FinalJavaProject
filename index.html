@@ -3,38 +3,264 @@
 <head>
   <meta charset="UTF-8">
   <title>발표 자료 모음</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #FDFBF2;
+      --black: #000000;
+      --yellow: #F5F0D0;
+      --red: #FF3333;
+      --blue: #2233FF;
+      --white: #FFFFFF;
+      --shadow: 5px 5px 0px var(--black);
+      --shadow-hover: 7px 7px 0px var(--black);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      max-width: 700px;
-      margin: 50px auto;
-      padding: 20px;
-      background: #f5f5f5;
+      font-family: 'Noto Sans KR', 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--black);
+      min-height: 100vh;
+      background-image:
+              repeating-linear-gradient(
+                      0deg,
+                      transparent,
+                      transparent 39px,
+                      rgba(0,0,0,0.03) 39px,
+                      rgba(0,0,0,0.03) 40px
+              ),
+              repeating-linear-gradient(
+                      90deg,
+                      transparent,
+                      transparent 39px,
+                      rgba(0,0,0,0.03) 39px,
+                      rgba(0,0,0,0.03) 40px
+              );
     }
-    h1 { margin-bottom: 30px; }
-    a {
-      display: block;
-      padding: 15px 20px;
-      margin: 10px 0;
-      background: #fff;
-      border-radius: 8px;
+
+    .wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 32px 120px;
+    }
+
+    .header {
+      border: 3px solid var(--black);
+      background: var(--yellow);
+      padding: 24px 32px;
+      margin-bottom: 48px;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .header h1 {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 900;
+      font-size: 32px;
+      text-transform: uppercase;
+      letter-spacing: -1px;
+    }
+
+    .header .tag {
+      display: inline-block;
+      margin-top: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      background: var(--black);
+      color: var(--yellow);
+      padding: 4px 10px;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--white);
+      background: var(--black);
+      display: inline-block;
+      padding: 6px 14px;
+      margin-bottom: 20px;
+      border: none;
+    }
+
+    .card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 20px 22px;
+      margin: 12px 0;
+      background: var(--white);
+      border: 3px solid var(--black);
+      border-radius: 0;
       text-decoration: none;
-      color: #333;
-      font-size: 18px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: transform 0.1s;
+      color: var(--black);
+      font-size: 14px;
+      transition: all 0.15s ease;
+      position: relative;
+      box-shadow: var(--shadow);
+      cursor: pointer;
     }
-    a:hover {
-      transform: translateX(5px);
-      background: #e8f0fe;
+
+    .card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0px var(--black);
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--yellow);
+      border: 2px solid var(--black);
+      border-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      font-weight: 700;
+      transition: background 0.15s;
+    }
+
+    .card:hover .card-icon {
+      background: var(--red);
+    }
+
+    .card-body {
+      flex: 1;
+    }
+
+    .card-title {
+      font-weight: 900;
+      color: var(--black);
+      margin-bottom: 4px;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+    }
+
+    .card-desc {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: #555;
+      font-weight: 400;
+    }
+
+    .card-arrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--black);
+      align-self: center;
+      transition: transform 0.15s;
+    }
+
+    .card:hover .card-arrow {
+      transform: translateX(4px);
+      color: var(--red);
+    }
+
+    .card.blue-accent .card-icon {
+      background: #D0D8FF;
+    }
+    .card.blue-accent:hover .card-icon {
+      background: var(--blue);
+    }
+    .card.blue-accent:hover .card-arrow {
+      color: var(--blue);
+    }
+
+    .stamp {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: var(--black);
+      color: var(--yellow);
+      padding: 8px 16px;
+      border: none;
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; gap: 32px; }
+      .wrapper { padding: 40px 16px 80px; }
+      .header h1 { font-size: 24px; }
     }
   </style>
 </head>
 <body>
-  <h1>발표 자료 모음</h1>
+<div class="wrapper">
 
-  <!-- PDF 추가할 때마다 아래에 한 줄씩 추가 -->
-  <a href="docs/project_overview/project-overview.pdf">📄 프로젝트 개요 </a>
- 
+  <div class="header">
+    <h1>자료 모음</h1>
+    <span class="tag">Presentation Archive</span>
+  </div>
+
+  <div class="grid">
+    <div class="section">
+      <div class="section-label">발표자료</div>
+
+
+      <a class="card" href="docs/project_overview/project-overview.pdf">
+        <div class="card-icon">📄</div>
+        <div class="card-body">
+          <div class="card-title">1. 프로젝트 개요</div>
+          <div class="card-desc">발표자료</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
+
+
+
+
+
+
+
+
+    </div>
+
+    <div class="section">
+      <div class="section-label blue-accent">AI 사용 내역</div>
+
+      <a class="card" href="AI사용내역/ai 사용 내역 프로젝트 개요.pdf">
+        <div class="card-icon">🤖</div>
+        <div class="card-body">
+          <div class="card-title">1. 프로젝트 개요 </div>
+          <div class="card-desc">Ai 사용 내역</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
+
+
+
+
+
+
+
+    </div>
+  </div>
+
+</div>
+
+<div class="stamp">JavaPrograming</div>
 </body>
 </html>
