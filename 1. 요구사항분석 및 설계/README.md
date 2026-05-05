@@ -1188,7 +1188,7 @@ erDiagram
 | week_offset | INTEGER | DEFAULT 1 | 몇 주 뒤인지 (1=다음 주) |
 
 
-**lot_day_of_week (슬롯 값: 요일 선택)**
+**slot_day_of_week (슬롯 값: 요일 선택)**
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
