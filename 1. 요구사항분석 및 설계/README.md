@@ -955,6 +955,7 @@ erDiagram
 
 
 
+### 기본 구조  
 
 **semester (학기)**
 
@@ -1085,6 +1086,9 @@ erDiagram
 | display_name | TEXT | - | 표시 이름 |
 | link_type | TEXT | - | 링크 유형 |
 
+
+### 태그 시스템
+
  **tag (태그)**
 
 | 필드명 | 타입 | 제약조건 | 설명 |
@@ -1099,6 +1103,8 @@ erDiagram
 | block_id | TEXT | PK, FK → block(id) | 블록 참조 |
 | tag_id | TEXT | PK, FK → tag(id) | 태그 참조 |
 
+### 캔버스 상태  
+
  **canvas_state (캔버스 블록 배치)**
 
 | 필드명 | 타입 | 제약조건 | 설명 |
@@ -1111,6 +1117,8 @@ erDiagram
 | width | REAL | NOT NULL | 너비 |
 | height | REAL | NOT NULL | 높이 |
 | z_order | INTEGER | DEFAULT 0 | 레이어 순서 |
+
+### 자동화 시스템  
 
  **automation_rule (자동화 규칙)**
 
@@ -1180,6 +1188,8 @@ erDiagram
 | executed_at | TEXT | DEFAULT datetime('now') | 실행 일시 |
 | status | TEXT | NOT NULL | 실행 결과 (SUCCESS, FAILURE 등) |
 | result_message | TEXT | - | 결과 메시지 |
+
+### 정렬 상태 저장  
 
  **sort_preference (정렬 설정)**
 
