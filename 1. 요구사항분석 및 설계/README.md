@@ -875,39 +875,39 @@ erDiagram
         TEXT created_at
     }
 
-    automation_trigger {
+    automation_command {
         TEXT id PK
         TEXT rule_id FK
-        TEXT trigger_type
+        TEXT command_type
         INTEGER sort_order
     }
 
-    trigger_next_week {
-        TEXT trigger_id PK
+    command_slot {
+        TEXT id PK
+        TEXT command_id FK
+        TEXT slot_type
+        INTEGER slot_order
+    }
+
+    slot_next_week {
+        TEXT slot_id PK
         INTEGER week_offset
     }
 
-    trigger_day_of_week {
+    slot_day_of_week {
         TEXT id PK
-        TEXT trigger_id FK
+        TEXT slot_id FK
         INTEGER day_of_week
     }
 
-    automation_action {
-        TEXT id PK
-        TEXT rule_id FK
-        TEXT action_type
-        INTEGER sort_order
-    }
-
-    action_register_schedule {
-        TEXT action_id PK
+    slot_preset_block {
+        TEXT slot_id PK
         TEXT preset_block_id FK
     }
 
-    action_open_blocks {
+    slot_open_blocks {
         TEXT id PK
-        TEXT action_id FK
+        TEXT slot_id FK
         TEXT block_id FK
     }
 
@@ -959,17 +959,18 @@ erDiagram
     block ||--o{ canvas_state : "positioned"
 
     subject ||--o{ automation_rule : "optional"
-    automation_rule ||--o{ automation_trigger : "has"
-    automation_rule ||--o{ automation_action : "has"
+    automation_rule ||--o{ automation_command : "has"
     automation_rule ||--o{ execution_log : "logs"
 
-    automation_trigger ||--o| trigger_next_week : "extends"
-    automation_trigger ||--o{ trigger_day_of_week : "has"
+    automation_command ||--o{ command_slot : "has"
 
-    automation_action ||--o| action_register_schedule : "extends"
-    automation_action ||--o{ action_open_blocks : "has"
-    preset_block ||--o{ action_register_schedule : "referenced"
-    block ||--o{ action_open_blocks : "referenced"
+    command_slot ||--o| slot_next_week : "extends"
+    command_slot ||--o{ slot_day_of_week : "has"
+    command_slot ||--o| slot_preset_block : "extends"
+    command_slot ||--o{ slot_open_blocks : "has"
+
+    preset_block ||--o{ slot_preset_block : "referenced"
+    block ||--o{ slot_open_blocks : "referenced"
 
     subject ||--o{ sort_preference : "has"
 ```
@@ -1148,72 +1149,74 @@ erDiagram
 
  **automation_rule (자동화 규칙)**
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | TEXT | PK | 규칙 고유 ID |
-| name | TEXT | - | 규칙 이름 |
-| context | TEXT | NOT NULL | 적용 컨텍스트 (CALENDAR, SUBJECT) |
-| subject_id | TEXT | FK → subject(id) | 과목 참조 (과목 컨텍스트인 경우) |
-| is_active | INTEGER | DEFAULT 1 | 활성 여부 (0/1) |
-| created_at | TEXT | DEFAULT datetime('now') | 생성 일시 |
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | TEXT | PRIMARY KEY | 고유 식별자 |
+| name | TEXT | | 자동화 이름 |
+| context | TEXT | NOT NULL | 소속 페이지 ('CALENDAR' / 'SUBJECT') |
+| subject_id | TEXT | FK → subject(id) | 과목 페이지용일 때 과목 ID |
+| is_active | INTEGER | DEFAULT 1 | 활성화 여부 |
+| created_at | TEXT | DEFAULT datetime('now') | 생성일시 |
 
- **automation_trigger (자동화 트리거)**
+**automation_command (자동화 명령문 템플릿)**
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | TEXT | PK | 트리거 고유 ID |
-| rule_id | TEXT | NOT NULL, FK → automation_rule(id) | 규칙 참조 |
-| trigger_type | TEXT | NOT NULL | 트리거 유형 (NEXT_WEEK, DAY_OF_WEEK 등) |
-| sort_order | INTEGER | DEFAULT 0 | 정렬 순서 |
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | TEXT | PRIMARY KEY | 고유 식별자 |
+| rule_id | TEXT | NOT NULL, FK → automation_rule(id) | 소속 규칙 |
+| command_type | TEXT | NOT NULL | 명령 유형 ('REGISTER_SCHEDULE', 'OPEN_BLOCKS') |
+| sort_order | INTEGER | DEFAULT 0 | 실행 순서 |
 
- **trigger_next_week (트리거: 다음 주 설정)**
+### command_slot (명령문의 슬롯)
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| trigger_id | TEXT | PK, FK → automation_trigger(id) | 트리거 참조 |
-| week_offset | INTEGER | DEFAULT 1 | 주 오프셋 (1=다음 주) |
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | TEXT | PRIMARY KEY | 고유 식별자 |
+| command_id | TEXT | NOT NULL, FK → automation_command(id) | 소속 명령문 |
+| slot_type | TEXT | NOT NULL | 슬롯 유형 ('NEXT_WEEK', 'DAY_OF_WEEK', 'PRESET_BLOCK') |
+| slot_order | INTEGER | NOT NULL | 문구에서 몇 번째 칸인지 (1, 2, 3) |
 
- **trigger_day_of_week (트리거: 요일 선택)**
+### slot_next_week (슬롯 값: 다음 주 설정)
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | TEXT | PK | 고유 ID |
-| trigger_id | TEXT | NOT NULL, FK → automation_trigger(id) | 트리거 참조 |
-| day_of_week | INTEGER | NOT NULL | 요일 (0=일, 1=월, …, 6=토) |
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| slot_id | TEXT | PRIMARY KEY, FK → command_slot(id) | 소속 슬롯 |
+| week_offset | INTEGER | DEFAULT 1 | 몇 주 뒤인지 (1=다음 주) |
 
- **automation_action (자동화 액션)**
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | TEXT | PK | 액션 고유 ID |
-| rule_id | TEXT | NOT NULL, FK → automation_rule(id) | 규칙 참조 |
-| action_type | TEXT | NOT NULL | 액션 유형 (REGISTER_SCHEDULE, OPEN_BLOCKS) |
-| sort_order | INTEGER | DEFAULT 0 | 정렬 순서 |
+### slot_day_of_week (슬롯 값: 요일 선택)
 
- **action_register_schedule (액션: 일정 등록)**
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | TEXT | PRIMARY KEY | 고유 식별자 |
+| slot_id | TEXT | NOT NULL, FK → command_slot(id) | 소속 슬롯 |
+| day_of_week | INTEGER | NOT NULL | 요일 (1=월 ~ 7=일) |
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| action_id | TEXT | PK, FK → automation_action(id) | 액션 참조 |
-| preset_block_id | TEXT | NOT NULL, FK → preset_block(block_id) | 등록할 미리블록 템플릿 |
+### slot_preset_block (슬롯 값: 미리블록 선택)
 
- **action_open_blocks (액션: 블록 동시 열기)**
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| slot_id | TEXT | PRIMARY KEY, FK → command_slot(id) | 소속 슬롯 |
+| preset_block_id | TEXT | NOT NULL, FK → preset_block(block_id) | 선택된 미리블록 |
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | TEXT | PK | 고유 ID |
-| action_id | TEXT | NOT NULL, FK → automation_action(id) | 액션 참조 |
-| block_id | TEXT | NOT NULL, FK → block(id) | 열 블록 참조 |
+### slot_open_blocks (슬롯 값: 블록 동시 실행)
 
-**execution_log (자동화 실행 이력)**
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | TEXT | PRIMARY KEY | 고유 식별자 |
+| slot_id | TEXT | NOT NULL, FK → command_slot(id) | 소속 슬롯 |
+| block_id | TEXT | NOT NULL, FK → block(id) | 실행할 블록 (파일/링크) |
 
-| 필드명 | 타입 | 제약조건 | 설명 |
-|--------|------|----------|------|
-| id | TEXT | PK | 로그 고유 ID |
-| rule_id | TEXT | NOT NULL, FK → automation_rule(id) | 규칙 참조 |
+### execution_log (실행 이력)
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | TEXT | PRIMARY KEY | 고유 식별자 |
+| rule_id | TEXT | NOT NULL, FK → automation_rule(id) | 소속 규칙 |
 | executed_at | TEXT | DEFAULT datetime('now') | 실행 일시 |
-| status | TEXT | NOT NULL | 실행 결과 (SUCCESS, FAILURE 등) |
-| result_message | TEXT | - | 결과 메시지 |
+| status | TEXT | NOT NULL | 실행 결과 ('SUCCESS', 'FAILED') |
+| result_message | TEXT | | 결과 메시지 |
+
 
 <br>
 
