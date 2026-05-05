@@ -528,7 +528,7 @@
 
 ### 3.1 전체 프로젝트 개요 다이어그램 또는 자바 클래스 다이어그램 제시  
 
-![메인 배너 이미지](source/images/requirements_analysis/ui_design.png)
+![화면 설계](FinalGavaProject/source/images/requirements_analysis/ui_design.png)
 
 ### 3.2 전체 프로젝트 개요 다이어그램 또는 자바 클래스 다이어그램 제시
 <details>
