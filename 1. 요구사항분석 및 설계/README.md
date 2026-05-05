@@ -1112,7 +1112,7 @@ erDiagram
 
 ### **태그 시스템**
 
- **tag (태그)**
+**tag (태그)**
 
 | 필드명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
@@ -1167,7 +1167,7 @@ erDiagram
 | command_type | TEXT | NOT NULL | 명령 유형 ('REGISTER_SCHEDULE', 'OPEN_BLOCKS') |
 | sort_order | INTEGER | DEFAULT 0 | 실행 순서 |
 
-### command_slot (명령문의 슬롯)
+**command_slot (명령문의 슬롯)**
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -1176,7 +1176,7 @@ erDiagram
 | slot_type | TEXT | NOT NULL | 슬롯 유형 ('NEXT_WEEK', 'DAY_OF_WEEK', 'PRESET_BLOCK') |
 | slot_order | INTEGER | NOT NULL | 문구에서 몇 번째 칸인지 (1, 2, 3) |
 
-### slot_next_week (슬롯 값: 다음 주 설정)
+**slot_next_week (슬롯 값: 다음 주 설정)**
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -1184,7 +1184,7 @@ erDiagram
 | week_offset | INTEGER | DEFAULT 1 | 몇 주 뒤인지 (1=다음 주) |
 
 
-### slot_day_of_week (슬롯 값: 요일 선택)
+**lot_day_of_week (슬롯 값: 요일 선택)**
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -1192,14 +1192,14 @@ erDiagram
 | slot_id | TEXT | NOT NULL, FK → command_slot(id) | 소속 슬롯 |
 | day_of_week | INTEGER | NOT NULL | 요일 (1=월 ~ 7=일) |
 
-### slot_preset_block (슬롯 값: 미리블록 선택)
+**slot_preset_block (슬롯 값: 미리블록 선택)**
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
 | slot_id | TEXT | PRIMARY KEY, FK → command_slot(id) | 소속 슬롯 |
 | preset_block_id | TEXT | NOT NULL, FK → preset_block(block_id) | 선택된 미리블록 |
 
-### slot_open_blocks (슬롯 값: 블록 동시 실행)
+**slot_open_blocks (슬롯 값: 블록 동시 실행)**
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -1207,7 +1207,7 @@ erDiagram
 | slot_id | TEXT | NOT NULL, FK → command_slot(id) | 소속 슬롯 |
 | block_id | TEXT | NOT NULL, FK → block(id) | 실행할 블록 (파일/링크) |
 
-### execution_log (실행 이력)
+**execution_log (실행 이력)**
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
