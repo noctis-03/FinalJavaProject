@@ -584,22 +584,22 @@ src/
 │   │   └── Timetable.java            # 시간표 모델 (FR-09)
 │   │
 │   ├── automation/
-│   │   ├── AutomationRule.java       # 자동화 규칙 (FR-12)
-│   │   ├── Trigger.java              # 트리거 인터페이스
-│   │   ├── Action.java               # 액션 인터페이스
-│   │   ├── NextWeekTrigger.java      # 다음 주 블록
-│   │   ├── DayOfWeekTrigger.java     # 요일 블록
-│   │   ├── ScheduleRegisterAction.java # 일정 등록 액션
-│   │   ├── OpenBlocksAction.java     # 블록 동시 실행 액션
-│   │   └── ExecutionLog.java         # 실행 이력
+│   │   ├── AutomationRule.java           # 자동화 규칙 (FR-12)
+│   │   ├── AutomationCommand.java        # 명령문 템플릿 (일정 등록 블록 등)
+│   │   ├── CommandSlot.java              # 슬롯 (빈칸) 공통
+│   │   ├── SlotNextWeek.java             # 슬롯 값: 다음 주
+│   │   ├── SlotDayOfWeek.java            # 슬롯 값: 요일 선택
+│   │   ├── SlotPresetBlock.java          # 슬롯 값: 미리블록 선택
+│   │   ├── SlotOpenBlocks.java           # 슬롯 값: 블록 동시 실행
+│   │   └── ExecutionLog.java             # 실행 이력
 │   │
 │   └── enums/
-│       ├── BlockType.java            # 블록 유형
-│       ├── AssignmentStatus.java     # 과제 상태 (미시작/진행중/완료)
-│       ├── ViewMode.java             # 주간/월간 뷰
-│       ├── Category.java             # 카테고리 (학업/운동/아르바이트)
-│       ├── ActionType.java           # 액션 유형
-│       └── TriggerType.java          # 트리거 유형
+│       ├── BlockType.java
+│       ├── AssignmentStatus.java
+│       ├── ViewMode.java
+│       ├── Category.java
+│       ├── CommandType.java              # 명령 유형 (REGISTER_SCHEDULE, OPEN_BLOCKS)
+│       └── SlotType.java                 # 슬롯 유형 (NEXT_WEEK, DAY_OF_WEEK, PRESET_BLOCK)
 │
 ├── service/                          # 비즈니스 로직 계층
 │   ├── CalendarService.java          # 캘린더 CRUD, 충돌 검사
@@ -672,36 +672,40 @@ src/
 │   └── DragGhostPanel.java           # 드래그 중 반투명 표시
 │
 └── database/                         # 데이터베이스 계층
-├── DatabaseManager.java          # DB 연결·초기화
-├── SchemaInitializer.java        # 테이블 생성 DDL 실행
-├── TransactionManager.java       # 트랜잭션 관리
-│
-├── dao/                          # Data Access Object
-│   ├── BaseDAO.java              # 공통 CRUD 추상 클래스
-│   ├── BlockDAO.java             # 블록 공통 DAO
-│   ├── ScheduleBlockDAO.java     # 일정 블록 DAO
-│   ├── PresetBlockDAO.java       # 미리블록 DAO
-│   ├── PresetBlockInstanceDAO.java # 미리블록 인스턴스 DAO
-│   ├── AssignmentDAO.java        # 과제 DAO
-│   ├── FileBlockDAO.java         # 파일블록 DAO
-│   ├── TextBlockDAO.java         # 텍스트블록 DAO
-│   ├── LinkBlockDAO.java         # 링크블록 DAO
-│   ├── SubjectDAO.java           # 과목 DAO
-│   ├── SemesterDAO.java          # 학기 DAO
-│   ├── TimetableDAO.java         # 시간표 DAO
-│   ├── TagDAO.java               # 태그 DAO
-│   ├── CanvasStateDAO.java       # 캔버스 상태 DAO
-│   ├── AutomationRuleDAO.java    # 자동화 규칙 DAO
-│   ├── AutomationTriggerDAO.java # 자동화 트리거 DAO
-│   ├── AutomationActionDAO.java  # 자동화 액션 DAO
-│   └── ExecutionLogDAO.java      # 실행 이력 DAO
-│
-└── mapper/                       # ResultSet → Model 변환
-├── BlockMapper.java
-├── SubjectMapper.java
-├── AssignmentMapper.java
-├── TimetableMapper.java
-└── AutomationMapper.java
+    ├── DatabaseManager.java          # DB 연결·초기화
+    ├── SchemaInitializer.java        # 테이블 생성 DDL 실행
+    ├── TransactionManager.java       # 트랜잭션 관리
+    │
+    ├── dao/                          # Data Access Object
+    │   ├── BaseDAO.java              # 공통 CRUD 추상 클래스
+    │   ├── BlockDAO.java             # 블록 공통 DAO
+    │   ├── ScheduleBlockDAO.java     # 일정 블록 DAO
+    │   ├── PresetBlockDAO.java       # 미리블록 DAO
+    │   ├── PresetBlockInstanceDAO.java # 미리블록 인스턴스 DAO
+    │   ├── AssignmentDAO.java        # 과제 DAO
+    │   ├── FileBlockDAO.java         # 파일블록 DAO
+    │   ├── TextBlockDAO.java         # 텍스트블록 DAO
+    │   ├── LinkBlockDAO.java         # 링크블록 DAO
+    │   ├── SubjectDAO.java           # 과목 DAO
+    │   ├── SemesterDAO.java          # 학기 DAO
+    │   ├── TimetableDAO.java         # 시간표 DAO
+    │   ├── TagDAO.java               # 태그 DAO
+    │   ├── CanvasStateDAO.java       # 캔버스 상태 DAO
+    │   ├── AutomationRuleDAO.java        # 자동화 규칙 DAO
+    │   ├── AutomationCommandDAO.java     # 명령문 DAO
+    │   ├── CommandSlotDAO.java           # 슬롯 DAO
+    │   ├── SlotNextWeekDAO.java          # 슬롯 값: 다음 주 DAO
+    │   ├── SlotDayOfWeekDAO.java         # 슬롯 값: 요일 DAO
+    │   ├── SlotPresetBlockDAO.java       # 슬롯 값: 미리블록 DAO
+    │   ├── SlotOpenBlocksDAO.java        # 슬롯 값: 블록 실행 DAO
+    │   └── ExecutionLogDAO.java      # 실행 이력 DAO
+    │    
+    └── mapper/                       # ResultSet → Model 변환
+    ├── BlockMapper.java
+    ├── SubjectMapper.java
+    ├── AssignmentMapper.java
+    ├── TimetableMapper.java
+    └── AutomationMapper.java
 ```
 
 </details>
