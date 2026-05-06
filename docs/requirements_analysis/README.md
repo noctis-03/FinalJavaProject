@@ -548,7 +548,7 @@
 
 ### 3.1 화면 설계
 
-![화면 설계](.../source/images/requirements_analysis/ui_design.png)
+![화면 설계](../../source/images/requirements_analysis/ui_design.png)
 
 왼쪽은 캘린더 페이지를 오른쪽은 과목 페이지를 나타낸다.
 
