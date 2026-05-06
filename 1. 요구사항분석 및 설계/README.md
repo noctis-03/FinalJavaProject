@@ -30,7 +30,7 @@
     - 요구사항 추적 매트릭스
 - [시스템 설계](#3-시스템-설계)
     - 화면 설계
-    - 전체 프로젝트 개요 다이어그램 또는 자바 클래스 다이어그램 제시
+    - 전체 프로젝트 개요 다이어그램 
     - 데이터베이스 이용 시 필요한 필드 이름 정리
 
 
@@ -71,6 +71,8 @@
 
 
 ### 1.2 요구사항 상세   
+
+- 각각 항목을 눌러 자세히 보기 
 
 <details>
 <summary>FR-01 | 블록 기반 캘린더 페이지</summary>
@@ -555,177 +557,60 @@
 
 
 ### 3.2 전체 프로젝트 개요 다이어그램 또는 자바 클래스 다이어그램 제시
-<details>
-<summary>예비 자바 클래스 다이어그램 (클릭하여 자세히 보기)</summary>
 
-``` 
-src/
-└── main/
-└── java/
-└── com/
-└── blople/
-│
-├── App.java                          # 메인 진입점
-│
-├── common/                           # 공통 유틸·상수
-│   ├── Constants.java                # 전역 상수 (색상, 크기 등)
-│   ├── EventBus.java                 # 컴포넌트 간 이벤트 통신
-│   ├── AutoSaveManager.java          # 자동 저장 관리
-│   └── FileUtil.java                 # 파일 I/O 유틸
-│
-├── model/                            # 데이터 모델 계층
-│   ├── block/
-│   │   ├── Block.java                # 블록 추상 기본 클래스
-│   │   ├── ScheduleBlock.java        # 일정 블록 (FR-01)
-│   │   ├── PresetBlock.java          # 미리블록 템플릿 (FR-02)
-│   │   ├── PresetBlockInstance.java   # 미리블록 인스턴스
-│   │   ├── AssignmentBlock.java      # 과제블록 (FR-04)
-│   │   ├── FileBlock.java            # 파일블록 (FR-05)
-│   │   ├── TextBlock.java            # 텍스트블록 (FR-06)
-│   │   ├── LinkBlock.java            # 링크블록 (FR-07)
-│   │   └── AutomationBlock.java      # 자동화블록 (FR-13)
-│   │
-│   ├── calendar/
-│   │   ├── CalendarModel.java        # 캘린더 데이터 모델
-│   │   ├── WeekViewModel.java        # 주간 뷰 모델
-│   │   ├── MonthViewModel.java       # 월간 뷰 모델
-│   │   └── TimeSlot.java             # 시간대 슬롯
-│   │
-│   ├── subject/
-│   │   ├── Subject.java              # 과목 모델 (FR-03)
-│   │   ├── Assignment.java           # 과제 데이터 (FR-10)
-│   │   ├── Semester.java             # 학기 모델
-│   │   └── Timetable.java            # 시간표 모델 (FR-09)
-│   │
-│   ├── automation/
-│   │   ├── AutomationRule.java           # 자동화 규칙 (FR-12)
-│   │   ├── AutomationCommand.java        # 명령문 템플릿 (일정 등록 블록 등)
-│   │   ├── CommandSlot.java              # 슬롯 (빈칸) 공통
-│   │   ├── SlotNextWeek.java             # 슬롯 값: 다음 주
-│   │   ├── SlotDayOfWeek.java            # 슬롯 값: 요일 선택
-│   │   ├── SlotPresetBlock.java          # 슬롯 값: 미리블록 선택
-│   │   ├── SlotOpenBlocks.java           # 슬롯 값: 블록 동시 실행
-│   │   └── ExecutionLog.java             # 실행 이력
-│   │
-│   └── enums/
-│       ├── BlockType.java
-│       ├── AssignmentStatus.java
-│       ├── ViewMode.java
-│       ├── Category.java
-│       ├── CommandType.java              # 명령 유형 (REGISTER_SCHEDULE, OPEN_BLOCKS)
-│       └── SlotType.java                 # 슬롯 유형 (NEXT_WEEK, DAY_OF_WEEK, PRESET_BLOCK)
-│
-├── service/                          # 비즈니스 로직 계층
-│   ├── CalendarService.java          # 캘린더 CRUD, 충돌 검사
-│   ├── BlockService.java             # 블록 생성·삭제·수정
-│   ├── SubjectService.java           # 과목 관리
-│   ├── AssignmentService.java        # 과제 관리, 마감일 연동
-│   ├── TimetableService.java         # 시간표 → 캘린더 반복블록 생성
-│   ├── AutomationService.java        # 자동화 실행 엔진
-│   ├── FileBlockService.java         # 파일 관리, 열기
-│   ├── DragDropService.java          # 드래그앤드롭 유효성 검증
-│   └── WeatherService.java           # 날씨 (추후 구현 예약)
-│
-├── view/                             # UI 계층 (Swing)
-│   ├── MainFrame.java                # 메인 윈도우 프레임
-│   ├── NavigationPanel.java          # 상단 탭 (캘린더/과목 전환)
-│   │
-│   ├── calendar/                     # 캘린더 페이지 UI
-│   │   ├── CalendarPagePanel.java    # 캘린더 페이지 전체 레이아웃
-│   │   ├── CalendarGridPanel.java    # 캘린더 그리드 (주간/월간)
-│   │   ├── WeekViewPanel.java        # 주간 뷰 렌더링
-│   │   ├── MonthViewPanel.java       # 월간 뷰 렌더링
-│   │   ├── PresetBlockPanel.java     # 미리블록 목록 패널 (좌측)
-│   │   ├── BlockRenderer.java        # 블록 시각적 렌더링
-│   │   ├── AutomationPanel.java      # 자동화 창 (FR-12)
-│   │   └── WeatherWidget.java        # 날씨 위젯 (우측 상단)
-│   │
-│   ├── subject/                      # 과목 페이지 UI
-│   │   ├── SubjectPagePanel.java     # 과목 페이지 전체 레이아웃
-│   │   ├── SubjectListPanel.java     # 좌측 과목 목록
-│   │   ├── SubjectDetailPanel.java   # 우측 영역 (캔버스 내장)
-│   │   ├── FileBlockListPanel.java   # 파일블록 정렬·필터
-│   │   ├── AssignmentInputDialog.java # 과제 입력 폼 (FR-10)
-│   │   ├── TimetableInputDialog.java # 시간표 입력 폼 (FR-09)
-│   │   └── SubjectSortPanel.java     # 정렬 기능 패널
-│   │
-│   ├── canvas/                       # 무한 캔버스 보드 UI
-│   │   ├── InfiniteCanvasPanel.java  # 무한 캔버스 메인 (FR-08)
-│   │   ├── CanvasViewport.java       # 줌·스크롤 관리
-│   │   ├── GridRenderer.java         # 격자 무늬 렌더링
-│   │   ├── CanvasBlockComponent.java # 캔버스 위 블록 컴포넌트
-│   │   ├── TextBlockComponent.java   # 텍스트블록 UI (FR-06)
-│   │   ├── LinkBlockComponent.java   # 링크블록 UI (FR-07)
-│   │   └── FileBlockComponent.java   # 파일블록 UI (캔버스용)
-│   │
-│   ├── dialog/                       # 공통 다이얼로그
-│   │   ├── BlockEditDialog.java      # 블록 편집 다이얼로그
-│   │   ├── PresetBlockCreateDialog.java # 미리블록 생성
-│   │   ├── ConfirmDeleteDialog.java  # 삭제 확인
-│   │   └── ConflictWarningDialog.java # 충돌 경고
-│   │
-│   └── component/                    # 재사용 가능한 UI 컴포넌트
-│       ├── ColorPicker.java          # 색상 선택기
-│       ├── TagChip.java              # 태그 칩 UI
-│       ├── StatusBadge.java          # 상태 배지
-│       └── DraggableComponent.java   # 드래그 가능 컴포넌트 기반
-│
-├── controller/                       # 컨트롤러 계층
-│   ├── CalendarController.java       # 캘린더 이벤트 처리
-│   ├── SubjectController.java        # 과목 페이지 이벤트 처리
-│   ├── CanvasController.java         # 캔버스 이벤트 처리
-│   ├── DragDropController.java       # 드래그앤드롭 이벤트 (FR-11)
-│   ├── AutomationController.java     # 자동화 조작 이벤트
-│   └── TimetableController.java      # 시간표 이벤트 처리
-│
-├── dnd/                              # 드래그앤드롭 전담 시스템
-│   ├── BlockTransferable.java        # Transferable 구현
-│   ├── BlockDragSource.java          # 드래그 소스 핸들러
-│   ├── CalendarDropTarget.java       # 캘린더 드롭 타겟
-│   ├── CanvasDropTarget.java         # 캔버스 드롭 타겟
-│   └── DragGhostPanel.java           # 드래그 중 반투명 표시
-│
-└── database/                         # 데이터베이스 계층
-    ├── DatabaseManager.java          # DB 연결·초기화
-    ├── SchemaInitializer.java        # 테이블 생성 DDL 실행
-    ├── TransactionManager.java       # 트랜잭션 관리
-    │
-    ├── dao/                          # Data Access Object
-    │   ├── BaseDAO.java              # 공통 CRUD 추상 클래스
-    │   ├── BlockDAO.java             # 블록 공통 DAO
-    │   ├── ScheduleBlockDAO.java     # 일정 블록 DAO
-    │   ├── PresetBlockDAO.java       # 미리블록 DAO
-    │   ├── PresetBlockInstanceDAO.java # 미리블록 인스턴스 DAO
-    │   ├── AssignmentDAO.java        # 과제 DAO
-    │   ├── FileBlockDAO.java         # 파일블록 DAO
-    │   ├── TextBlockDAO.java         # 텍스트블록 DAO
-    │   ├── LinkBlockDAO.java         # 링크블록 DAO
-    │   ├── SubjectDAO.java           # 과목 DAO
-    │   ├── SemesterDAO.java          # 학기 DAO
-    │   ├── TimetableDAO.java         # 시간표 DAO
-    │   ├── TagDAO.java               # 태그 DAO
-    │   ├── CanvasStateDAO.java       # 캔버스 상태 DAO
-    │   ├── AutomationRuleDAO.java        # 자동화 규칙 DAO
-    │   ├── AutomationCommandDAO.java     # 명령문 DAO
-    │   ├── CommandSlotDAO.java           # 슬롯 DAO
-    │   ├── SlotNextWeekDAO.java          # 슬롯 값: 다음 주 DAO
-    │   ├── SlotDayOfWeekDAO.java         # 슬롯 값: 요일 DAO
-    │   ├── SlotPresetBlockDAO.java       # 슬롯 값: 미리블록 DAO
-    │   ├── SlotOpenBlocksDAO.java        # 슬롯 값: 블록 실행 DAO
-    │   └── ExecutionLogDAO.java      # 실행 이력 DAO
-    │    
-    └── mapper/                       # ResultSet → Model 변환
-    ├── BlockMapper.java
-    ├── SubjectMapper.java
-    ├── AssignmentMapper.java
-    ├── TimetableMapper.java
-    └── AutomationMapper.java
+- 전체 프로젝트 개요 다이어그램
+
+```mermaid
+graph TB
+    APP["Blople - 블록 기반 학업 관리 플래너<br/>Java Swing + SQLite"]
+
+    APP --> CAL["캘린더 페이지<br/>FR-01"]
+    APP --> SUB["과목 페이지<br/>FR-03"]
+    APP --> CANVAS["무한 캔버스 보드<br/>FR-08"]
+    APP --> DND["드래그 앤 드롭 시스템<br/>FR-11"]
+    APP --> DB["데이터베이스 SQLite<br/>자동 저장 및 복구"]
+
+    CAL --> CAL_VIEW["주간/월간 뷰 전환"]
+    CAL --> SCHED["일정 블록 생성 및 배치"]
+    CAL --> PRESET["미리블록 템플릿<br/>FR-02"]
+    CAL --> CAL_AUTO["캘린더 자동화<br/>FR-12, FR-13"]
+    CAL --> WEATHER["날씨 위젯<br/>FR-14 - 보류"]
+
+    SUB --> TIMETABLE["시간표 입력<br/>FR-09"]
+    SUB --> ASSIGN_INPUT["과제 입력<br/>FR-10"]
+    SUB --> FILE_MANAGE["파일블록 관리<br/>FR-05"]
+    SUB --> SORT["정렬 및 필터"]
+    SUB --> SUB_AUTO["과목 자동화<br/>FR-12"]
+
+    CANVAS --> TEXT_BLK["텍스트 블록<br/>FR-06"]
+    CANVAS --> LINK_BLK["링크 블록<br/>FR-07"]
+    CANVAS --> FILE_BLK["파일블록 배치<br/>FR-05"]
+    CANVAS --> GRID["격자 스냅 및 줌"]
+    CANVAS --> HANDWRITE["필기 기능<br/>FR-16 - 보류"]
+
+    TIMETABLE -->|"자동 생성"| SUB
+    TIMETABLE -->|"반복 블록 연동"| CAL
+    ASSIGN_INPUT -->|"마감일 연동"| CAL
+    PRESET -->|"드래그 배치"| SCHED
+    FILE_MANAGE -->|"드래그 배치"| CANVAS
+    SUB_AUTO -->|"블록 동시 열기"| CANVAS
+
+    DND -.->|"블록 이동"| CAL
+    DND -.->|"블록 배치"| CANVAS
+    DND -.->|"슬롯 채우기"| CAL_AUTO
+```
+- 아키텍처 다이어그램 ()  
+
+```
+[사용자] ──> [View / UI] ──> [Controller] ──> [Service] ──> [DAO] ──> [SQLite DB]
+│              │                │                │             │           │
+│  마우스/키보드  │   이벤트 수신    │  비즈니스 로직   │   SQL 실행   │  데이터 저장 │
+│   이벤트 발생  │   + 화면 갱신    │   + 검증 처리   │  + 매핑 변환  │  + 조회 반환 │
+│              │                │                │             │           │
+└──────────────└────────────────└────────────────└─────────────└───────────┘
+◀── 응답 데이터 역방향 전달 ──◀
 ```
 
-</details>
-
-> [!CAUTION]  
-> 위의 내용은 예비 자바 클래스 다이어그램이며 후에 변경될 수 있음   
 
 <br>
 
@@ -733,265 +618,6 @@ src/
 
 
 ### 3.3 데이터베이스 이용 시 필요한 필드 이름 정리
-
-```mermaid
-erDiagram
-
-    %% ============================================
-    %% 기본 구조
-    %% ============================================
-
-    semester {
-        TEXT id PK
-        TEXT name
-        TEXT start_date
-        TEXT end_date
-        INTEGER is_active
-        TEXT created_at
-    }
-
-    subject {
-        TEXT id PK
-        TEXT semester_id FK
-        TEXT name
-        TEXT professor
-        TEXT classroom
-        TEXT color
-        INTEGER sort_order
-        TEXT created_at
-    }
-
-    timetable_entry {
-        TEXT id PK
-        TEXT subject_id FK
-        INTEGER day_of_week
-        TEXT start_time
-        TEXT end_time
-    }
-
-    %% ============================================
-    %% 블록 시스템
-    %% ============================================
-
-    block {
-        TEXT id PK
-        TEXT block_type
-        TEXT name
-        TEXT color
-        TEXT memo
-        TEXT created_at
-        TEXT updated_at
-    }
-
-    schedule_block {
-        TEXT block_id PK
-        TEXT start_datetime
-        TEXT end_datetime
-        TEXT subject_id FK
-        INTEGER is_recurring
-        TEXT recurrence_rule
-    }
-
-    preset_block {
-        TEXT block_id PK
-        INTEGER duration_minutes
-        TEXT category
-    }
-
-    preset_block_instance {
-        TEXT id PK
-        TEXT preset_block_id FK
-        TEXT start_datetime
-        TEXT end_datetime
-    }
-
-    assignment {
-        TEXT block_id PK
-        TEXT subject_id FK
-        TEXT deadline
-        TEXT description
-        TEXT score_weight
-        TEXT submit_method
-        TEXT status
-        TEXT work_date
-        TEXT work_start_time
-        TEXT work_end_time
-    }
-
-    assignment_attachment {
-        TEXT id PK
-        TEXT assignment_id FK
-        TEXT file_path
-        TEXT file_name
-    }
-
-    file_block {
-        TEXT block_id PK
-        TEXT subject_id FK
-        TEXT file_path
-        TEXT file_name
-        TEXT file_type
-        INTEGER file_size
-    }
-
-    text_block {
-        TEXT block_id PK
-        TEXT subject_id FK
-        TEXT title
-        TEXT content
-        TEXT background_color
-    }
-
-    link_block {
-        TEXT block_id PK
-        TEXT subject_id FK
-        TEXT url
-        TEXT display_name
-        TEXT link_type
-    }
-
-    %% ============================================
-    %% 태그 시스템
-    %% ============================================
-
-    tag {
-        TEXT id PK
-        TEXT name
-    }
-
-    block_tag {
-        TEXT block_id PK
-        TEXT tag_id PK
-    }
-
-    %% ============================================
-    %% 캔버스 상태
-    %% ============================================
-
-    canvas_state {
-        TEXT id PK
-        TEXT subject_id FK
-        TEXT block_id FK
-        REAL pos_x
-        REAL pos_y
-        REAL width
-        REAL height
-        INTEGER z_order
-    }
-
-    %% ============================================
-    %% 자동화 시스템
-    %% ============================================
-
-    automation_rule {
-        TEXT id PK
-        TEXT name
-        TEXT context
-        TEXT subject_id FK
-        INTEGER is_active
-        TEXT created_at
-    }
-
-    automation_command {
-        TEXT id PK
-        TEXT rule_id FK
-        TEXT command_type
-        INTEGER sort_order
-    }
-
-    command_slot {
-        TEXT id PK
-        TEXT command_id FK
-        TEXT slot_type
-        INTEGER slot_order
-    }
-
-    slot_next_week {
-        TEXT slot_id PK
-        INTEGER week_offset
-    }
-
-    slot_day_of_week {
-        TEXT id PK
-        TEXT slot_id FK
-        INTEGER day_of_week
-    }
-
-    slot_preset_block {
-        TEXT slot_id PK
-        TEXT preset_block_id FK
-    }
-
-    slot_open_blocks {
-        TEXT id PK
-        TEXT slot_id FK
-        TEXT block_id FK
-    }
-
-    execution_log {
-        TEXT id PK
-        TEXT rule_id FK
-        TEXT executed_at
-        TEXT status
-        TEXT result_message
-    }
-
-    %% ============================================
-    %% 정렬 상태
-    %% ============================================
-
-    sort_preference {
-        TEXT id PK
-        TEXT subject_id FK
-        TEXT sort_field
-        TEXT sort_direction
-    }
-
-    %% ============================================
-    %% 관계 정의
-    %% ============================================
-
-    semester ||--o{ subject : "has"
-    subject ||--o{ timetable_entry : "has"
-
-    block ||--o| schedule_block : "extends"
-    block ||--o| preset_block : "extends"
-    block ||--o| assignment : "extends"
-    block ||--o| file_block : "extends"
-    block ||--o| text_block : "extends"
-    block ||--o| link_block : "extends"
-
-    subject ||--o{ schedule_block : "optional"
-    preset_block ||--o{ preset_block_instance : "instantiates"
-    subject ||--o{ assignment : "has"
-    assignment ||--o{ assignment_attachment : "has"
-    subject ||--o{ file_block : "has"
-    subject ||--o{ text_block : "optional"
-    subject ||--o{ link_block : "optional"
-
-    block ||--o{ block_tag : "tagged"
-    tag ||--o{ block_tag : "applied"
-
-    subject ||--o{ canvas_state : "has"
-    block ||--o{ canvas_state : "positioned"
-
-    subject ||--o{ automation_rule : "optional"
-    automation_rule ||--o{ automation_command : "has"
-    automation_rule ||--o{ execution_log : "logs"
-
-    automation_command ||--o{ command_slot : "has"
-
-    command_slot ||--o| slot_next_week : "extends"
-    command_slot ||--o{ slot_day_of_week : "has"
-    command_slot ||--o| slot_preset_block : "extends"
-    command_slot ||--o{ slot_open_blocks : "has"
-
-    preset_block ||--o{ slot_preset_block : "referenced"
-    block ||--o{ slot_open_blocks : "referenced"
-
-    subject ||--o{ sort_preference : "has"
-```
-
 
 
 ### **기본 구조**  
