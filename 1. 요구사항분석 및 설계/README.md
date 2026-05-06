@@ -598,7 +598,7 @@ graph TB
     DND -.->|"블록 배치"| CANVAS
     DND -.->|"슬롯 채우기"| CAL_AUTO
 ```
-- 아키텍처 다이어그램 ()  
+- 아키텍처 다이어그램 (데이터 흐름 요약)  
 
 ```
 [사용자] ──> [View / UI] ──> [Controller] ──> [Service] ──> [DAO] ──> [SQLite DB]
