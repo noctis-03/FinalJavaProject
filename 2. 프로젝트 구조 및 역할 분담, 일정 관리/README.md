@@ -56,11 +56,11 @@
 
 <br>
 
-- 1.1.2 유스케이스 목록 상세
+- 1.1.2 유스케이스 상세
 
   <details>
   
-  <summary>  </summary>
+  <summary> 유스케이스 목록 </summary>
   
   | ID | 유스케이스명 | 관련 FR | 영역 |
   |---|---|---|---|
@@ -93,8 +93,6 @@
   | UC-27 | 되돌리기 (Ctrl+Z) | NFR-011 | 공통 |
   
   </details>
-
-- 1.1.3 include / extend 관계 정리
 
 
   <details>
