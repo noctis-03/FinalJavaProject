@@ -167,9 +167,9 @@
 
   <br>
 
-- **화면 흐름도**  
-
-  ![유스케이스다이어그램](../source/images/project_structure/ui.png)
+>화면 흐름도 
+>
+>![유스케이스다이어그램](../source/images/project_structure/ui.png)
 
 
 
