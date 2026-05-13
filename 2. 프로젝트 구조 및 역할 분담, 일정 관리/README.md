@@ -66,8 +66,8 @@ com.blople/
 ├── controller/       # 6개 컨트롤러
 ├── dnd/              # 5개 DnD 핸들러
 └── database/
-├── dao/          # BaseDAO + 20개 DAO
-└── mapper/       # 5개 Mapper
+    ├── dao/          # BaseDAO + 20개 DAO
+    └── mapper/       # 5개 Mapper
 ```
 
 >[!NOTE]  
