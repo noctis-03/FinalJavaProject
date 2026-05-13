@@ -139,7 +139,7 @@
     <br>
 
 
-  - 화면 구성
+  - **화면 구성**
 
   ![화면](../source/images/requirements_analysis/ui_design.png)
     - 캘린더 페이지 레이아웃
@@ -160,7 +160,7 @@
     | 무한 캔버스 보드 | 우측 (메인 영역) | 격자에 맞게 블록 스냅, 자동화 블록 바로 사용, 파일/텍스트/링크 블록 배치 | FR-08, FR-05, FR-06, FR-07 |
     <br>
 
-  - 화면 흐름도
+  - **화면 흐름도**
     ![유스케이스다이어그램](../source/images/project_structure/ui.png)
 
 
