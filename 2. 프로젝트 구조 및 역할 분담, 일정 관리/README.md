@@ -720,7 +720,7 @@ classDiagram
 
 ---
 
-### 1.3 계층별 자바 클래스 다이어그램  
+### 1.3 계층(모델)별 자바 클래스 다이어그램  
 
 <details>
 <summary> ㄱ. Block 도메인 모델 </summary>  
