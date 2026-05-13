@@ -59,7 +59,6 @@
 <br>
 
   - 유스케이스 상세
-
   <details>
   
   <summary> 유스케이스 목록 </summary>
