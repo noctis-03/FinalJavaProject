@@ -167,15 +167,15 @@
 | 과목 목록 패널 | 좌측 | 과목별 정렬, 각 과목별 탭(리스트), 과제 블록 진행 상태 표시 | FR-03, FR-04 |
 | 무한 캔버스 보드 | 우측 (메인 영역) | 격자에 맞게 블록 스냅, 자동화 블록 바로 사용, 파일/텍스트/링크 블록 배치 | FR-08, FR-05, FR-06, FR-07 |
         
-</details>
+ </details>
         
-<details>
+ <details>
 
-<summary> 화면 흐름도 </summary>
+ <summary> 화면 흐름도 </summary>
         
-![유스케이스다이어그램](../source/images/project_structure/ui.png)
+ ![유스케이스다이어그램](../source/images/project_structure/ui.png)
         
-</details>
+ </details>
 
 
 
