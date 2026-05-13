@@ -45,7 +45,7 @@
 
 ### 1.1 프로젝트의 기능/화면/시스템 구조 정리  
 
-  1.1.1 유스케이스 다이어그램   
+    1.1.1 유스케이스 다이어그램   
 
 ![화면 설계](../source/images/project_structure/usecasediagram.png)
 
