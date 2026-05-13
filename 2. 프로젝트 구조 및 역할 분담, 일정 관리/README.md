@@ -96,8 +96,7 @@
   
     <br>
     
-    </details>
-  
+    </details> 
   
     <details>
     <summary> include (필수 포함) 관계 </summary>
@@ -119,7 +118,7 @@
   
     </details>
 
-  <details>
+    <details>
 
     <summary> extend (조건부 확장) 관계 </summary>
   
@@ -137,7 +136,7 @@
   
     </details>  
 
-  <br>
+    <br>
 
 
   -  화면 구성
