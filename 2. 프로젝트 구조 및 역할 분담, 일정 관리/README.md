@@ -60,7 +60,7 @@
 
 <details>
 
-<summury> 유스케이스 목록 상세 </summury> 
+<summary> 유스케이스 목록 상세 </summary>
 
 | ID | 유스케이스명 | 관련 FR | 영역 |
 |---|---|---|---|
