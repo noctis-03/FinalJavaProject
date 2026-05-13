@@ -142,7 +142,8 @@
 
 ### 1.2 프로젝트의 화면 구조 정리  
 
-- **화면 구성**  
+- **화면 구성**   
+
   ![화면](../source/images/requirements_analysis/ui_design.png)
 
   - 캘린더 페이지 레이아웃
