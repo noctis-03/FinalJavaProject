@@ -1277,6 +1277,7 @@ classDiagram
     CommandSlot "1" --> "*" SlotOpenBlocks : value
 ```
 
+<br>
 
 </details>
 
@@ -1470,6 +1471,7 @@ classDiagram
     SubjectService --> AutoSaveManager : markDirty
 ```
 
+<br>
 
 </details>
 
@@ -1963,6 +1965,7 @@ classDiagram
     TimetableInputDialog "1" *-- "1" ColorPicker
 ```
 
+<br>
 
 </details>
 
@@ -2225,6 +2228,7 @@ classDiagram
     CanvasDropTarget --> BlockTransferable : receives
 ```
 
+<br>
 
 </details>
 
@@ -2583,5 +2587,6 @@ classDiagram
     CommandSlot "1" --> "*" SlotOpenBlocks : value
 ```
 
+<br>
 
 </details>
