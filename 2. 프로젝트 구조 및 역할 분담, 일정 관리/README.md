@@ -94,13 +94,12 @@
     | UC-26 | 블록 삭제 | FR-01~08 | 공통 |
     | UC-27 | 되돌리기 (Ctrl+Z) | NFR-011 | 공통 |
   
-      <br>
+    <br>
     
-      </details>
+    </details>
   
   
     <details>
-    
     <summary> include (필수 포함) 관계 </summary>
   
     | 기본 유스케이스 | include 대상 | 설명 |
