@@ -43,6 +43,132 @@
 
 ## <1. 프로젝트 구조 설계>
 
+### 1.1 프로젝트의 기능/화면/시스템 구조 정리  
+
+- 유스케이스 다이어그램  
+
+
+```mermaid
+
+graph TB
+%% ===== 액터 =====
+ACTOR["🧑‍🎓 대학생 (사용자)"]
+
+    %% ===== 시스템 경계 =====
+    subgraph SYSTEM["Blople - 블록 기반 학업 통합 관리 프로그램"]
+
+        %% --- 캘린더 영역 ---
+        subgraph CAL_AREA["캘린더 페이지"]
+            UC01["일정 블록 생성"]
+            UC02["일정 블록 이동/리사이즈"]
+            UC03["주간/월간 뷰 전환"]
+            UC04["일정 충돌 확인"]
+            UC05["미리블록 템플릿 생성"]
+            UC06["미리블록 캘린더 배치"]
+            UC07["날씨 확인"]
+        end
+
+        %% --- 과목 페이지 영역 ---
+        subgraph SUB_AREA["과목 페이지"]
+            UC08["시간표 입력"]
+            UC09["과목 페이지 조회"]
+            UC10["과제 생성"]
+            UC11["과제 상태 변경"]
+            UC12["파일블록 등록"]
+            UC13["파일블록 열기"]
+            UC14["블록 정렬/필터링"]
+            UC15["태그 관리"]
+        end
+
+        %% --- 캔버스 영역 ---
+        subgraph CANVAS_AREA["무한 캔버스 보드"]
+            UC16["텍스트블록 생성/편집"]
+            UC17["링크블록 생성"]
+            UC18["파일블록 캔버스 배치"]
+            UC19["캔버스 줌/팬 조작"]
+            UC20["블록 크기 조절"]
+        end
+
+        %% --- 자동화 영역 ---
+        subgraph AUTO_AREA["자동화 시스템"]
+            UC21["자동화 규칙 생성"]
+            UC22["슬롯에 블록 채우기"]
+            UC23["자동화 실행"]
+            UC24["실행 이력 확인"]
+        end
+
+        %% --- 공통 ---
+        subgraph COMMON_AREA["공통 기능"]
+            UC25["드래그 앤 드롭 조작"]
+            UC26["블록 삭제"]
+            UC27["되돌리기 (Ctrl+Z)"]
+        end
+
+        %% --- 시스템 내부 자동 동작 ---
+        subgraph INTERNAL["시스템 내부 동작"]
+            SYS01["캘린더 마감일 자동 표시"]
+            SYS02["과목 페이지 자동 생성"]
+            SYS03["반복 블록 자동 생성"]
+            SYS04["데이터 자동 저장"]
+            SYS05["비정상 종료 복구"]
+            SYS06["마감 임박 시각적 강조"]
+        end
+    end
+
+    %% ===== 액터 → 유스케이스 연결 =====
+    ACTOR --> UC01
+    ACTOR --> UC02
+    ACTOR --> UC03
+    ACTOR --> UC04
+    ACTOR --> UC05
+    ACTOR --> UC06
+    ACTOR --> UC07
+    ACTOR --> UC08
+    ACTOR --> UC09
+    ACTOR --> UC10
+    ACTOR --> UC11
+    ACTOR --> UC12
+    ACTOR --> UC13
+    ACTOR --> UC14
+    ACTOR --> UC15
+    ACTOR --> UC16
+    ACTOR --> UC17
+    ACTOR --> UC18
+    ACTOR --> UC19
+    ACTOR --> UC20
+    ACTOR --> UC21
+    ACTOR --> UC22
+    ACTOR --> UC23
+    ACTOR --> UC24
+    ACTOR --> UC25
+    ACTOR --> UC26
+    ACTOR --> UC27
+
+    %% ===== include 관계 =====
+    UC01 -.->|"≪include≫"| UC25
+    UC02 -.->|"≪include≫"| UC25
+    UC06 -.->|"≪include≫"| UC25
+    UC18 -.->|"≪include≫"| UC25
+    UC22 -.->|"≪include≫"| UC25
+    UC10 -.->|"≪include≫"| SYS01
+    UC08 -.->|"≪include≫"| SYS02
+    UC08 -.->|"≪include≫"| SYS03
+
+    %% ===== extend 관계 =====
+    UC04 -.->|"≪extend≫"| UC01
+    UC04 -.->|"≪extend≫"| UC02
+    SYS06 -.->|"≪extend≫"| UC10
+    SYS04 -.->|"≪extend≫"| UC01
+    SYS04 -.->|"≪extend≫"| UC10
+    SYS04 -.->|"≪extend≫"| UC12
+    SYS05 -.->|"≪extend≫"| SYS04
+
+```
+
+
+
+
+
 
 ### 1.1 프로젝트 디렉터리 구조
 
@@ -2590,3 +2716,4 @@ classDiagram
 <br>
 
 </details>
+
