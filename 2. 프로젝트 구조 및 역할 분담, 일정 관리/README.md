@@ -57,8 +57,8 @@
 <br>
 
 - 1.1.2 유스케이스 다이어그램  
-
-<details>
+  
+    <details>
 
 <summary> 유스케이스 목록 상세 </summary>
 
