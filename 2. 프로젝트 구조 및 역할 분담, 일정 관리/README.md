@@ -47,7 +47,7 @@
 
   - **유스케이스 다이어그램**  
 
-  ![유스케이스다이어그램](../source/images/project_structure/usecasediagram.png)
+  ![유스케이스다이어그램](../source/images/project_structure/usecasediagram.png)  
   
   >[!NOTE]  
   > 유스케이스다이어그램은 사용자와 시스템이 제공하는 기능간의 관계를 표현한다.  
@@ -62,7 +62,7 @@
 
     <details>
     
-    <summary> 유스케이스 목록 </summary>
+    <summary> 유스케이스 목록 </summary>  
     
     | ID | 유스케이스명 | 관련 FR | 영역 |
     |---|---|---|---|
@@ -99,7 +99,7 @@
     </details> 
   
     <details>
-    <summary> include (필수 포함) 관계 </summary>
+    <summary> include (필수 포함) 관계 </summary>  
   
     | 기본 유스케이스 | include 대상 | 설명 |
     |---|---|---|
@@ -120,7 +120,7 @@
 
     <details>
 
-    <summary> extend (조건부 확장) 관계 </summary>
+    <summary> extend (조건부 확장) 관계 </summary>  
   
     | 확장 유스케이스 | 기본 유스케이스 | 확장 조건 |
     |---|---|---|
@@ -145,9 +145,9 @@
 ![화면](../source/images/requirements_analysis/ui_design.png)
 
 <details>
-<summary>캘린더 페이지 레이아웃</summary>
+<summary>캘린더 페이지 레이아웃</summary>  
 
-![화면](../source/images/requirements_analysis/ui_design.png)
+
 
 >| 영역 | 위치 | 설명 | 관련 FR |
 >|------|------|------|---------|
@@ -161,7 +161,7 @@
 </details>
 
 <details>
-<summary>과목 페이지 레이아웃</summary>
+<summary>과목 페이지 레이아웃</summary>  
 
 >| 영역 | 위치 | 설명 | 관련 FR |
 >|------|------|------|---------|
@@ -172,7 +172,7 @@
 </details>
 
 <details>
-<summary>화면 흐름도</summary>
+<summary>화면 흐름도</summary>  
 
 ![유스케이스다이어그램](../source/images/project_structure/ui.png)
 
