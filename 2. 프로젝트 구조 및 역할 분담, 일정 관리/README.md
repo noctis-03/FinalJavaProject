@@ -135,19 +135,16 @@
   
     <br>
   
-    </details>  
+    </details>
 
-    <br>
+<br>
 
 
 
-- **화면 구성**   
-
-![화면](../source/images/requirements_analysis/ui_design.png)
-
-    ### 화면 구성
+    - **화면 구성**   
 
 ![화면](../source/images/requirements_analysis/ui_design.png)
+
 
 <details>
 <summary>캘린더 페이지 레이아웃</summary>
