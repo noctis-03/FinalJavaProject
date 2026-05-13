@@ -94,9 +94,9 @@
     | UC-26 | 블록 삭제 | FR-01~08 | 공통 |
     | UC-27 | 되돌리기 (Ctrl+Z) | NFR-011 | 공통 |
   
-    <br>
-  
-    </details>
+      <br>
+    
+      </details>
   
   
     <details>
