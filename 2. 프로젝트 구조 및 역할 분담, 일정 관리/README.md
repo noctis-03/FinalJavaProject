@@ -239,8 +239,8 @@ com.blople/
 <br>
 
 - **1.2.2 전체 프로젝트 디렉터리 구조**
-  <details>
-  <summary>전체 자바 클래스 다이어그램 (클릭하여 자세히 보기)</summary>
+    <details>
+    <summary>전체 자바 클래스 다이어그램 (클릭하여 자세히 보기)</summary>
 
     ``` 
     src/
