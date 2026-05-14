@@ -164,6 +164,8 @@
     <summary> 화면 구성도 </summary>  
     
     ![화면](../source/images/requirements_analysis/ui_design.png)  
+
+    <br>
     
     </details>  
 
@@ -179,7 +181,9 @@
     | 자동화 창      | 중앙 하단           | 자동화 블록 추가 및 조립 영역                     | FR-12, FR-13 |
     | 대학 정보      | 우측              | 장학금, 캠프, 프로그램 등 대학 관련 정보 (추후 업데이트)    | FR-15        |
     | 날씨         | 우측 상단 (네비게이션 바) | 내일 날씨 간단 표시 (추후 업데이트)                 | FR-14        |
-        
+
+    <br>
+    
     </details>
         
     <details>
@@ -190,13 +194,16 @@
      | 상단 네비게이션 바 | 최상단        | 캘린더/과목 탭 전환, 날씨 위젯(우측)                      | -                          |
     | 과목 목록 패널   | 좌측         | 과목별 정렬, 각 과목별 탭(리스트), 과제 블록 진행 상태 표시        | FR-03, FR-04               |
      | 무한 캔버스 보드  | 우측 (메인 영역) | 격자에 맞게 블록 스냅, 자동화 블록 바로 사용, 파일/텍스트/링크 블록 배치 | FR-08, FR-05, FR-06, FR-07 |
-        
+
+    <br>
+    
     </details>
         
     <details>
     <summary> 화면 흐름도 </summary>
         
     ![화면 구성도](../source/images/project_structure/ui.png)
+    <br>
         
     </details>
 
