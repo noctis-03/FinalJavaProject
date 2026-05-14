@@ -204,7 +204,7 @@
 
 - **1.1.4 데이터 스키마 시각화**
 
-     <details>
+    <details>
     <summary> erDiagram </summary>
 
     ```mermaid
@@ -425,7 +425,7 @@
     ```
     
     
-     </details>
+</details>
 
 
 <br>
@@ -627,7 +627,8 @@
         ├── AssignmentMapper.java
         ├── TimetableMapper.java
         └── AutomationMapper.java
-    ```
+     ```
+    
     </details>
 
 
