@@ -214,10 +214,10 @@
 
 - **1.1.4 데이터 스키마 시각화**
 
-    <details>
-    <summary> erDiagram </summary>
-
-    ```mermaid
+   <details>
+   <summary> erDiagram </summary>
+  
+   ```mermaid
     erDiagram
         %% ============================================
         %% 기본 구조
