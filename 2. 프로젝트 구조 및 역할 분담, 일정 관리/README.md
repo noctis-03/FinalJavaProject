@@ -3078,7 +3078,7 @@
 ---
 
 ### 2.2 협업 및 의사소통 방안 정리
-- 팀원별 담당 업부 작성
+- 브랜치 전략
 
 | 브랜치 | 용도 | 관리자 |
 |--------|------|--------|
@@ -3092,18 +3092,36 @@
   
 <br>
 
-- 팀원별 담당 업부 작성
+- 코드 리뷰 규칙
+
+| 규칙 | 내용 |
+|------|------|
+| PR 머지 조건 | `develop` 브랜치로의 Pull Request는 반드시 상대방의 리뷰 승인 후 머지 |
+| 공통 모듈 수정 시 | model/block, common, database 인프라 수정 시 반드시 상대방에게 사전 공유 후 작업 |
+
+<br>
+
+- 의사소통 방안
+
+| 방식 | 주기 | 내용 |
+|------|------|------|
+| 정기 회의 | 주 2회 (월, 목) | 진행 상황 공유, 이슈 논의, 다음 작업 합의 |
+| GitHub Issues | 수시 | 버그 리포트, 기능 요청, 질문 코멘트 |
+| GitHub Projects | 상시 | 칸반 보드로 작업 상태(대기/진행중/리뷰중/완료) 관리 |
+| 긴급 연락 | 수시 | 빌드 실패, 공통 모듈 변경 시 즉시 메신저 알림 |
 
 
 <br>
 
-- 팀원별 담당 업부 작성
+- 연동 지점 관리
 
+A와 B의 작업이 만나는 핵심 연동 지점은 다음 3곳이며, 사전에 인터페이스를 합의하고 우선적으로 구현한다.
 
-<br>
-
-- 팀원별 담당 업부 작성
-
+| 연동 지점 | A 측 | B 측 | 합의 필요 사항 |
+|-----------|------|------|----------------|
+| 과제 → 캘린더 마감일 연동 | CalendarService.addDeadlineMark() | AssignmentService.syncDeadlineToCalendar() | 메서드 시그니처, 이벤트명 |
+| 시간표 → 캘린더 반복 블록 | CalendarService.addScheduleBlock() | TimetableService.syncToCalendarAsRecurring() | 반복 블록 데이터 형식 |
+| 드래그 앤 드롭 (공통) | CalendarDropTarget | CanvasDropTarget | BlockTransferable 데이터 포맷, 드롭 유효성 규칙 |
 
 <br>
 
