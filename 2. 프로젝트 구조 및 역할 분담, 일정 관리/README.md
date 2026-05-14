@@ -3182,34 +3182,34 @@ gantt
 
 - 1주차 (05.20 ~ 05.25) — 기반 구조 + 캘린더 코어
 
-| 작업 | 상세 내용 | 산출물 | 관련 FR/NFR |
-|----------------|------------------------------------------------------------------------------|------------------------------------|---------------------|
-| 프로젝트 기반 구축 | App.java, MainFrame, NavigationPanel, 패키지 구조 생성, Block 추상 클래스 및 열거형 구현 | 프로젝트 골격, Block 상속 구조 | NFR-024 |
-| DB 구현 | DatabaseManager(싱글톤), SchemaInitializer(전체 테이블 DDL), TransactionManager, BaseDAO 추상 클래스 | SQLite DB 파일, 전체 테이블 생성 완료 | NFR-014, NFR-015 |
-| 캘린더 코어 UI | CalendarPagePanel, CalendarGridPanel, WeekViewPanel, MonthViewPanel, 뷰 전환 기능 | 캘린더 페이지 화면 | FR-01 |
-| 캘린더 블록 CRUD | ScheduleBlockDAO, CalendarService, CalendarController, 블록 생성/이동/리사이즈/삭제, 충돌 감지 | 캘린더에서 블록 조작 가능 | FR-01, NFR-002 |
+    | 작업 | 상세 내용 | 산출물 | 관련 FR/NFR |
+    |----------------|------------------------------------------------------------------------------|------------------------------------|---------------------|
+    | 프로젝트 기반 구축 | App.java, MainFrame, NavigationPanel, 패키지 구조 생성, Block 추상 클래스 및 열거형 구현 | 프로젝트 골격, Block 상속 구조 | NFR-024 |
+    | DB 구현 | DatabaseManager(싱글톤), SchemaInitializer(전체 테이블 DDL), TransactionManager, BaseDAO 추상 클래스 | SQLite DB 파일, 전체 테이블 생성 완료 | NFR-014, NFR-015 |
+    | 캘린더 코어 UI | CalendarPagePanel, CalendarGridPanel, WeekViewPanel, MonthViewPanel, 뷰 전환 기능 | 캘린더 페이지 화면 | FR-01 |
+    | 캘린더 블록 CRUD | ScheduleBlockDAO, CalendarService, CalendarController, 블록 생성/이동/리사이즈/삭제, 충돌 감지 | 캘린더에서 블록 조작 가능 | FR-01, NFR-002 |
 
 <br>
 
 - 2주차 (05.26 ~ 06.01) — 과목 페이지 + 블록 시스템
 
-| 작업 | 상세 내용 | 산출물 | 관련 FR/NFR |
-|--------------------|---------------------------------------------------------------------------------------------------|------------------------------|----------------|
-| 과목 페이지 + 시간표 | SubjectPagePanel, SubjectListPanel, TimetableInputDialog, 시간표 입력 시 과목 자동 생성 + 캘린더 반복 블록 연동 | 과목 페이지 화면, 시간표 기능 | FR-03, FR-09 |
-| 과제블록 + 캘린더 연동 | AssignmentInputDialog, AssignmentService, 과제 생성 시 캘린더 마감일 자동 표시, 상태 관리(미시작/진행중/완료) | 과제 CRUD + 캘린더 연동 | FR-04, FR-10 |
-| 파일블록 + 태그 | FileBlockService, FileBlockListPanel, TagDAO, 파일 등록/열기/유효성 검증, 태그 부여 및 필터링 | 파일블록 기능, 태그 시스템 | FR-05 |
-| 미리블록 + DnD | PresetBlockPanel, PresetBlockCreateDialog, DragDropController, BlockDragSource, CalendarDropTarget, DragGhostPanel | 미리블록 템플릿 + 드래그 앤 드롭 | FR-02, FR-11 |
+    | 작업 | 상세 내용 | 산출물 | 관련 FR/NFR |
+    |--------------------|---------------------------------------------------------------------------------------------------|------------------------------|----------------|
+    | 과목 페이지 + 시간표 | SubjectPagePanel, SubjectListPanel, TimetableInputDialog, 시간표 입력 시 과목 자동 생성 + 캘린더 반복 블록 연동 | 과목 페이지 화면, 시간표 기능 | FR-03, FR-09 |
+    | 과제블록 + 캘린더 연동 | AssignmentInputDialog, AssignmentService, 과제 생성 시 캘린더 마감일 자동 표시, 상태 관리(미시작/진행중/완료) | 과제 CRUD + 캘린더 연동 | FR-04, FR-10 |
+    | 파일블록 + 태그 | FileBlockService, FileBlockListPanel, TagDAO, 파일 등록/열기/유효성 검증, 태그 부여 및 필터링 | 파일블록 기능, 태그 시스템 | FR-05 |
+    | 미리블록 + DnD | PresetBlockPanel, PresetBlockCreateDialog, DragDropController, BlockDragSource, CalendarDropTarget, DragGhostPanel | 미리블록 템플릿 + 드래그 앤 드롭 | FR-02, FR-11 |
 
 <br>
 
 - 3주차 (06.02 ~ 06.07) — 캔버스 + 자동화 + 마무리
 
-| 작업 | 상세 내용 | 산출물 | 관련 FR/NFR |
-|--------------------|--------------------------------------------------------------------------------------|----------------------------|------------------|
-| 무한 캔버스 보드 | InfiniteCanvasPanel, CanvasViewport, GridRenderer, CanvasDropTarget, 줌/팬/격자 스냅, 캔버스 상태 저장 | 무한 캔버스 화면 | FR-08, NFR-005 |
-| 텍스트블록 + 링크블록 | TextBlockComponent, LinkBlockComponent, 캔버스 위 생성/편집/배치 | 텍스트/링크 블록 기능 | FR-06, FR-07 |
-| 자동화 시스템 | AutomationPanel, AutomationService, 명령문 슬롯 채우기, 실행 엔진, 실행 이력 | 자동화 규칙 생성 및 실행 | FR-12, FR-13 |
-| 통합 테스트 + 버그 수정 | 전체 기능 통합 테스트, 캘린더↔과목 연동 검증, NFR 성능 확인, 버그 수정 | 테스트 결과 보고, 최종 빌드 | NFR 전체 |
+    | 작업 | 상세 내용 | 산출물 | 관련 FR/NFR |
+    |--------------------|--------------------------------------------------------------------------------------|----------------------------|------------------|
+    | 무한 캔버스 보드 | InfiniteCanvasPanel, CanvasViewport, GridRenderer, CanvasDropTarget, 줌/팬/격자 스냅, 캔버스 상태 저장 | 무한 캔버스 화면 | FR-08, NFR-005 |
+    | 텍스트블록 + 링크블록 | TextBlockComponent, LinkBlockComponent, 캔버스 위 생성/편집/배치 | 텍스트/링크 블록 기능 | FR-06, FR-07 |
+    | 자동화 시스템 | AutomationPanel, AutomationService, 명령문 슬롯 채우기, 실행 엔진, 실행 이력 | 자동화 규칙 생성 및 실행 | FR-12, FR-13 |
+    | 통합 테스트 + 버그 수정 | 전체 기능 통합 테스트, 캘린더↔과목 연동 검증, NFR 성능 확인, 버그 수정 | 테스트 결과 보고, 최종 빌드 | NFR 전체 |
 
 <br>
 
