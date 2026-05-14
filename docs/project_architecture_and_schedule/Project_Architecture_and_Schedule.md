@@ -74,7 +74,7 @@
 
 
 - **1.1.1 유스케이스 다이어그램**
-![유스케이스다이어그램](../source/images/project_structure/usecasediagram.png)
+![유스케이스다이어그램](../../source/images/project_structure/usecasediagram.png)
 
 
   >유스케이스다이어그램은 **사용자와 시스템이 제공하는 기능간의 관계**를 표현한다.  
@@ -178,7 +178,7 @@
     >
     ><summary> 화면 구성도 </summary>  
     >
-    >![화면](../source/images/requirements_analysis/ui_design.png)  
+    >![화면](../../source/images/requirements_analysis/ui_design.png)  
     >
     ><br>
     >
@@ -217,7 +217,7 @@
     ><details>
     ><summary> 화면 흐름도 </summary>
     >    
-    >![화면 구성도](../source/images/project_structure/ui.png)
+    >![화면 구성도](../../source/images/project_structure/ui.png)
     ><br>
     >    
     ></details>
