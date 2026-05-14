@@ -2761,18 +2761,18 @@ classDiagram
 
 
 - **1.3.3 다이어그램 생성 워크플로우**  
->본 프로젝트의 클래스 수는 약 100개 이상으로, 하나의 다이어그램에 모두 표현할 경우 가독성이 크게 떨어진다. 따라서 MVC 아키텍처 패턴의 각 레이어에 대응하도록 6개의 다이어그램으로 분리하였다.
+  - 본 프로젝트의 클래스 수는 약 100개 이상으로, 하나의 다이어그램에 모두 표현할 경우 가독성이 크게 떨어진다. 따라서 MVC 아키텍처 패턴의 각 레이어에 대응하도록 6개의 다이어그램으로 분리하였다.
+    
+    | # | 다이어그램명 | 패키지 범위 | 주요 표현 관계 |
+    |---|---|---|---|
+    | 1 | Block 도메인 모델 | model/block, model/enums | 상속, 열거형 사용 |
+    | 2 | Subject/Calendar/Automation 모델 | model/subject, model/calendar, model/automation | 연관, 구성, 1:N |
+    | 3 | Service 계층 | service/ | 의존, 위임 |
+    | 4 | View 계층 | view/ 전체 | 컴포지션, 컴포넌트 트리 |
+    | 5 | Controller + DnD | controller/, dnd/ | 이벤트 수신, 위임 |
+    | 6 | Database (DAO/Mapper) | database/ 전체 | 상속, 변환 |
 
-| # | 다이어그램명 | 패키지 범위 | 주요 표현 관계 |
-|---|---|---|---|
-| 1 | Block 도메인 모델 | model/block, model/enums | 상속, 열거형 사용 |
-| 2 | Subject/Calendar/Automation 모델 | model/subject, model/calendar, model/automation | 연관, 구성, 1:N |
-| 3 | Service 계층 | service/ | 의존, 위임 |
-| 4 | View 계층 | view/ 전체 | 컴포지션, 컴포넌트 트리 |
-| 5 | Controller + DnD | controller/, dnd/ | 이벤트 수신, 위임 |
-| 6 | Database (DAO/Mapper) | database/ 전체 | 상속, 변환 |
-
-계층별 다이어그램은 각 레이어의 내부 구조를 상세히 보여주지만, 계층 간의 연결 관계(View → Controller → Service → Model → Database)는 표현하지 못한다. 
+  - 계층별 다이어그램은 각 레이어의 내부 구조를 상세히 보여주지만, 계층 간의 연결 관계(View → Controller → Service → Model → Database)는 표현하지 못한다. 
 통합 개요 다이어그램은 6개 계층이 서로 어떻게 협력하고 데이터가 어떤 경로로 흐르는지를 한눈에 조망하기 위해 작성하였다.
 
 
