@@ -3130,5 +3130,29 @@
 
 ## <3. 일정 관리 계획>
 
-### 3.1 주차별 세부 일정__
+### 3.1 주차별 세부 일정
 
+```mermaid
+gantt
+    title Blople 프로젝트 개발 일정 (3주)
+    dateFormat  YYYY-MM-DD
+    axisFormat  %m/%d
+
+    section 1주차 (기반+코어)
+    v0.1 기반 구조 및 DB           :a1, 2026-05-20, 2d
+    v0.2 캘린더 코어               :a2, after a1, 3d
+    v0.3 과목 및 시간표             :a3, after a1, 3d
+    1주차 중간 점검                 :milestone, m1, 2026-05-24, 0d
+
+    section 2주차 (블록+DnD)
+    v0.4 블록 시스템                :b1, 2026-05-26, 3d
+    v0.5 미리블록 및 DnD            :b2, 2026-05-26, 3d
+    v0.6 무한 캔버스                :b3, after b1, 2d
+    2주차 중간 점검                 :milestone, m2, 2026-05-31, 0d
+
+    section 3주차 (자동화+통합)
+    v0.7 자동화 시스템              :c1, 2026-06-01, 3d
+    통합 테스트 및 버그 수정          :c2, after c1, 2d
+    NFR 검증 및 최종 정리            :c3, after c2, 2d
+    v1.0 최종 제출                  :milestone, m3, 2026-06-07, 0d
+```
