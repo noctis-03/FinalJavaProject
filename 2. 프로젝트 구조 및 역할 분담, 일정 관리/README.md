@@ -208,29 +208,29 @@
 
 - **1.2.1 전체 프로젝트 디렉터리 구조 요약본**
 
-``` 
-com.blople/
-├── App.java
-├── common/           # Constants, EventBus, AutoSaveManager, FileUtil
-├── model/
-│   ├── block/        # Block, ScheduleBlock, PresetBlock 등 8종
-│   ├── calendar/     # CalendarModel, WeekViewModel, MonthViewModel, TimeSlot
-│   ├── subject/      # Subject, Assignment, Semester, Timetable
-│   ├── automation/   # AutomationRule, AutomationCommand, Slot 계열, ExecutionLog
-│   └── enums/        # BlockType, ViewMode, Category 등
-├── service/          # CalendarService, BlockService 등 9개
-├── view/
-│   ├── calendar/     # 캘린더 페이지 UI 8개
-│   ├── subject/      # 과목 페이지 UI 7개
-│   ├── canvas/       # 무한 캔버스 UI 7개
-│   ├── dialog/       # 공통 다이얼로그 4개
-│   └── component/    # 재사용 컴포넌트 4개
-├── controller/       # 6개 컨트롤러
-├── dnd/              # 5개 DnD 핸들러
-└── database/
-    ├── dao/          # BaseDAO + 20개 DAO
-    └── mapper/       # 5개 Mapper
-```
+    ``` 
+    com.blople/
+    ├── App.java
+    ├── common/           # Constants, EventBus, AutoSaveManager, FileUtil
+    ├── model/
+    │   ├── block/        # Block, ScheduleBlock, PresetBlock 등 8종
+    │   ├── calendar/     # CalendarModel, WeekViewModel, MonthViewModel, TimeSlot
+    │   ├── subject/      # Subject, Assignment, Semester, Timetable
+    │   ├── automation/   # AutomationRule, AutomationCommand, Slot 계열, ExecutionLog
+    │   └── enums/        # BlockType, ViewMode, Category 등
+    ├── service/          # CalendarService, BlockService 등 9개
+    ├── view/
+    │   ├── calendar/     # 캘린더 페이지 UI 8개
+    │   ├── subject/      # 과목 페이지 UI 7개
+    │   ├── canvas/       # 무한 캔버스 UI 7개
+    │   ├── dialog/       # 공통 다이얼로그 4개
+    │   └── component/    # 재사용 컴포넌트 4개
+    ├── controller/       # 6개 컨트롤러
+    ├── dnd/              # 5개 DnD 핸들러
+    └── database/
+        ├── dao/          # BaseDAO + 20개 DAO
+        └── mapper/       # 5개 Mapper
+    ```
 
 >[!NOTE]  
 >다음은 전체 프로젝트 디렉터리 구조를 간단히 요약한 것이다.  
