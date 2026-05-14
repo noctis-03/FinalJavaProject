@@ -3048,6 +3048,7 @@
   | **DAO** | ScheduleBlockDAO, PresetBlockDAO, PresetBlockInstanceDAO, AutomationRuleDAO, AutomationCommandDAO, CommandSlotDAO, 슬롯값 DAO 4개, ExecutionLogDAO | SubjectDAO, SemesterDAO, TimetableDAO, AssignmentDAO, FileBlockDAO, TextBlockDAO, LinkBlockDAO, TagDAO, CanvasStateDAO |
   | **담당 마일스톤** | v0.2 (캘린더 코어), v0.5 (미리블록/DnD), v0.7 (자동화) | v0.3 (과목/시간표), v0.4 (블록 시스템), v0.6 (캔버스) |
 
+<br>
 
 -  공동 담당 (함께 작업)
 
@@ -3061,6 +3062,8 @@
    | 공통 다이얼로그 | BlockEditDialog, ConfirmDeleteDialog, ConflictWarningDialog |
    | v1.0 통합 | 통합 테스트, NFR 검증, 최종 제출 |
 
+<br>
+
 -  책임 범위 정의
 
     | 역할 | A의 책임 | B의 책임 |
@@ -3069,6 +3072,10 @@
     | 구현 | 캘린더 CRUD, 미리블록 템플릿, 자동화 실행 엔진 | 시간표→과목 자동 생성, 과제↔캘린더 연동, 캔버스 줌/팬/스냅 |
     | 테스트 | 캘린더 블록 충돌 검사, 자동화 슬롯 검증, 반복 블록 정합성 | 과제 마감일 연동 정합성, 파일 열기/유효성, 캔버스 상태 저장 복원 |
     | 문서 | 캘린더/자동화 관련 클래스 주석 | 과목/캔버스 관련 클래스 주석 |
+
+<br>
+
+---
 
  2.2 협업 및 의사소통 방안 정리
 
