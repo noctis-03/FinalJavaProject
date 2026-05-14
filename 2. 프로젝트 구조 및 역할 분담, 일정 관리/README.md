@@ -3034,9 +3034,43 @@
 
 ## <2. 역할분담>
 
-### 2.1 팀원별 담당 업무와 책임 범위 작성
+### 2.1 팀원별 담당 업무와 책임 범위 작성  
 
-### 2.2 협업 및 의사소통 방안 정리
+- 팀원별 담당 업부 작성  
+- 
+  | 구분 | A | B |
+  |------|---|---|
+  | **주 담당 영역** | 캘린더 페이지 + 자동화 시스템 | 과목 페이지 + 무한 캔버스 보드 |
+  | **담당 FR** | FR-01, FR-02, FR-11(캘린더), FR-12, FR-13, FR-14 | FR-03, FR-04, FR-05, FR-06, FR-07, FR-08, FR-09, FR-10, FR-15, FR-16 |
+  | **View** | CalendarPagePanel, WeekViewPanel, MonthViewPanel, PresetBlockPanel, AutomationPanel, WeatherWidget | SubjectPagePanel, SubjectListPanel, SubjectDetailPanel, InfiniteCanvasPanel, TextBlockComponent, LinkBlockComponent, FileBlockComponent |
+  | **Controller** | CalendarController, AutomationController | SubjectController, CanvasController, TimetableController |
+  | **Service** | CalendarService, AutomationService | SubjectService, AssignmentService, TimetableService, FileBlockService |
+  | **DAO** | ScheduleBlockDAO, PresetBlockDAO, PresetBlockInstanceDAO, AutomationRuleDAO, AutomationCommandDAO, CommandSlotDAO, 슬롯값 DAO 4개, ExecutionLogDAO | SubjectDAO, SemesterDAO, TimetableDAO, AssignmentDAO, FileBlockDAO, TextBlockDAO, LinkBlockDAO, TagDAO, CanvasStateDAO |
+  | **담당 마일스톤** | v0.2 (캘린더 코어), v0.5 (미리블록/DnD), v0.7 (자동화) | v0.3 (과목/시간표), v0.4 (블록 시스템), v0.6 (캔버스) |
+
+
+-  공동 담당 (함께 작업)
+
+   | 항목 | 내용 |
+   |------|------|
+   | v0.1 기반 구조 | App.java, MainFrame, NavigationPanel, Block 추상 클래스, 열거형, DatabaseManager, SchemaInitializer, TransactionManager, BaseDAO |
+   | DnD 시스템 | DragDropController, DragDropService, BlockTransferable, BlockDragSource, CalendarDropTarget, CanvasDropTarget, DragGhostPanel |
+   | 공통 컴포넌트 | ColorPicker, TagChip, StatusBadge, DraggableComponent, BlockRenderer |
+   | 공통 유틸 | EventBus, AutoSaveManager, Constants, FileUtil |
+   | Mapper | BlockMapper, SubjectMapper, AssignmentMapper, TimetableMapper, AutomationMapper |
+   | 공통 다이얼로그 | BlockEditDialog, ConfirmDeleteDialog, ConflictWarningDialog |
+   | v1.0 통합 | 통합 테스트, NFR 검증, 최종 제출 |
+
+-  책임 범위 정의
+
+| 역할 | A의 책임 | B의 책임 |
+|------|----------|----------|
+| 설계 | 캘린더 UI/UX 설계, 자동화 명령문 구조 설계 | 과목 페이지 UI/UX 설계, 캔버스 인터랙션 설계 |
+| 구현 | 캘린더 CRUD, 미리블록 템플릿, 자동화 실행 엔진 | 시간표→과목 자동 생성, 과제↔캘린더 연동, 캔버스 줌/팬/스냅 |
+| 테스트 | 캘린더 블록 충돌 검사, 자동화 슬롯 검증, 반복 블록 정합성 | 과제 마감일 연동 정합성, 파일 열기/유효성, 캔버스 상태 저장 복원 |
+| 문서 | 캘린더/자동화 관련 클래스 주석 | 과목/캔버스 관련 클래스 주석 |
+
+ 2.2 협업 및 의사소통 방안 정리
 
 
 
