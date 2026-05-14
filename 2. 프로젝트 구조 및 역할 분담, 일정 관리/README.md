@@ -3159,5 +3159,5 @@ gantt
     M1 기반 구조 완성                   :milestone, 2026-05-22, 0d
     M2 캘린더/과목 코어 완성             :milestone, 2026-05-29, 0d
     M3 전체 기능 구현 완료               :milestone, 2026-06-05, 0d
-    M4 최종 제출                        :milestone, 2026-06-08, 0d              :milestone, m3, 2026-06-07, 0d
+    M4 최종 제출                        :milestone, 2026-06-08, 0d
 ```
