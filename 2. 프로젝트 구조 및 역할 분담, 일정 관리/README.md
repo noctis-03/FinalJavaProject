@@ -204,6 +204,223 @@
 
 - **1.1.4 데이터 스키마**
 
+```mermaid
+erDiagram
+    %% ============================================
+    %% 기본 구조
+    %% ============================================
+    semester {
+        TEXT id PK
+        TEXT name
+        TEXT start_date
+        TEXT end_date
+        INTEGER is_active
+        TEXT created_at
+    }
+    subject {
+        TEXT id PK
+        TEXT semester_id FK
+        TEXT name
+        TEXT professor
+        TEXT classroom
+        TEXT color
+        INTEGER sort_order
+        TEXT created_at
+    }
+    timetable_entry {
+        TEXT id PK
+        TEXT subject_id FK
+        INTEGER day_of_week
+        TEXT start_time
+        TEXT end_time
+    }
+    %% ============================================
+    %% 블록 시스템
+    %% ============================================
+    block {
+        TEXT id PK
+        TEXT block_type
+        TEXT name
+        TEXT color
+        TEXT memo
+        TEXT created_at
+        TEXT updated_at
+    }
+    schedule_block {
+        TEXT block_id PK
+        TEXT start_datetime
+        TEXT end_datetime
+        TEXT subject_id FK
+        INTEGER is_recurring
+        TEXT recurrence_rule
+    }
+    preset_block {
+        TEXT block_id PK
+        INTEGER duration_minutes
+        TEXT category
+    }
+    preset_block_instance {
+        TEXT id PK
+        TEXT preset_block_id FK
+        TEXT start_datetime
+        TEXT end_datetime
+    }
+    assignment {
+        TEXT block_id PK
+        TEXT subject_id FK
+        TEXT deadline
+        TEXT description
+        TEXT score_weight
+        TEXT submit_method
+        TEXT status
+        TEXT work_date
+        TEXT work_start_time
+        TEXT work_end_time
+    }
+    assignment_attachment {
+        TEXT id PK
+        TEXT assignment_id FK
+        TEXT file_path
+        TEXT file_name
+    }
+    file_block {
+        TEXT block_id PK
+        TEXT subject_id FK
+        TEXT file_path
+        TEXT file_name
+        TEXT file_type
+        INTEGER file_size
+    }
+    text_block {
+        TEXT block_id PK
+        TEXT subject_id FK
+        TEXT title
+        TEXT content
+        TEXT background_color
+    }
+    link_block {
+        TEXT block_id PK
+        TEXT subject_id FK
+        TEXT url
+        TEXT display_name
+        TEXT link_type
+    }
+    %% ============================================
+    %% 태그 시스템
+    %% ============================================
+    tag {
+        TEXT id PK
+        TEXT name
+    }
+    block_tag {
+        TEXT block_id PK
+        TEXT tag_id PK
+    }
+    %% ============================================
+    %% 캔버스 상태
+    %% ============================================
+    canvas_state {
+        TEXT id PK
+        TEXT subject_id FK
+        TEXT block_id FK
+        REAL pos_x
+        REAL pos_y
+        REAL width
+        REAL height
+        INTEGER z_order
+    }
+    %% ============================================
+    %% 자동화 시스템
+    %% ============================================
+    automation_rule {
+        TEXT id PK
+        TEXT name
+        TEXT context
+        TEXT subject_id FK
+        INTEGER is_active
+        TEXT created_at
+    }
+    automation_command {
+        TEXT id PK
+        TEXT rule_id FK
+        TEXT command_type
+        INTEGER sort_order
+    }
+    command_slot {
+        TEXT id PK
+        TEXT command_id FK
+        TEXT slot_type
+        INTEGER slot_order
+    }
+    slot_next_week {
+        TEXT slot_id PK
+        INTEGER week_offset
+    }
+    slot_day_of_week {
+        TEXT id PK
+        TEXT slot_id FK
+        INTEGER day_of_week
+    }
+    slot_preset_block {
+        TEXT slot_id PK
+        TEXT preset_block_id FK
+    }
+    slot_open_blocks {
+        TEXT id PK
+        TEXT slot_id FK
+        TEXT block_id FK
+    }
+    execution_log {
+        TEXT id PK
+        TEXT rule_id FK
+        TEXT executed_at
+        TEXT status
+        TEXT result_message
+    }
+    %% ============================================
+    %% 정렬 상태
+    %% ============================================
+    sort_preference {
+        TEXT id PK
+        TEXT subject_id FK
+        TEXT sort_field
+        TEXT sort_direction
+    }
+    %% ============================================
+    %% 관계 정의
+    %% ============================================
+    semester ||--o{ subject : "has"
+    subject ||--o{ timetable_entry : "has"
+    block ||--o| schedule_block : "extends"
+    block ||--o| preset_block : "extends"
+    block ||--o| assignment : "extends"
+    block ||--o| file_block : "extends"
+    block ||--o| text_block : "extends"
+    block ||--o| link_block : "extends"
+    subject ||--o{ schedule_block : "optional"
+    preset_block ||--o{ preset_block_instance : "instantiates"
+    subject ||--o{ assignment : "has"
+    assignment ||--o{ assignment_attachment : "has"
+    subject ||--o{ file_block : "has"
+    subject ||--o{ text_block : "optional"
+    subject ||--o{ link_block : "optional"
+    block ||--o{ block_tag : "tagged"
+    tag ||--o{ block_tag : "applied"
+    subject ||--o{ canvas_state : "has"
+    block ||--o{ canvas_state : "positioned"
+    subject ||--o{ automation_rule : "optional"
+    automation_rule ||--o{ automation_command : "has"
+    automation_rule ||--o{ execution_log : "logs"
+    automation_command ||--o{ command_slot : "has"
+    command_slot ||--o| slot_next_week : "extends"
+    command_slot ||--o{ slot_day_of_week : "has"
+    command_slot ||--o| slot_preset_block : "extends"
+    command_slot ||--o{ slot_open_blocks : "has"
+    preset_block ||--o{ slot_preset_block : "referenced"
+    block ||--o{ slot_open_blocks : "referenced"
+    subject ||--o{ sort_preference : "has"
+```
+
 <br>
 
 ---
