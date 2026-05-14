@@ -3138,21 +3138,26 @@ gantt
     dateFormat  YYYY-MM-DD
     axisFormat  %m/%d
 
-    section 1주차 (기반+코어)
-    v0.1 기반 구조 및 DB           :a1, 2026-05-20, 2d
-    v0.2 캘린더 코어               :a2, after a1, 3d
-    v0.3 과목 및 시간표             :a3, after a1, 3d
-    1주차 중간 점검                 :milestone, m1, 2026-05-24, 0d
+    section 공통 기반
+    v0.1 프로젝트 골격 및 DB 구축       :crit, T0, 2026-05-20, 3d
 
-    section 2주차 (블록+DnD)
-    v0.4 블록 시스템                :b1, 2026-05-26, 3d
-    v0.5 미리블록 및 DnD            :b2, 2026-05-26, 3d
-    v0.6 무한 캔버스                :b3, after b1, 2d
-    2주차 중간 점검                 :milestone, m2, 2026-05-31, 0d
+    section 캘린더 (A)
+    v0.2 캘린더 코어                    :T1, 2026-05-23, 4d
+    v0.5 미리블록 및 DnD               :T5, 2026-05-30, 3d
+    v0.7 자동화 시스템                  :T7, 2026-06-03, 3d
 
-    section 3주차 (자동화+통합)
-    v0.7 자동화 시스템              :c1, 2026-06-01, 3d
-    통합 테스트 및 버그 수정          :c2, after c1, 2d
-    NFR 검증 및 최종 정리            :c3, after c2, 2d
-    v1.0 최종 제출                  :milestone, m3, 2026-06-07, 0d
+    section 과목/캔버스 (B)
+    v0.3 과목 및 시간표                 :T2, 2026-05-23, 3d
+    v0.4 블록 시스템                    :T3, 2026-05-26, 4d
+    v0.6 무한 캔버스                    :T6, 2026-05-30, 3d
+
+    section 통합
+    v1.0 통합 테스트 및 버그 수정         :crit, T8, 2026-06-04, 3d
+    최종 점검 및 제출                    :crit, T9, 2026-06-07, 2d
+
+    section 마일스톤
+    M1 기반 구조 완성                   :milestone, 2026-05-22, 0d
+    M2 캘린더/과목 코어 완성             :milestone, 2026-05-29, 0d
+    M3 전체 기능 구현 완료               :milestone, 2026-06-05, 0d
+    M4 최종 제출                        :milestone, 2026-06-08, 0d              :milestone, m3, 2026-06-07, 0d
 ```
