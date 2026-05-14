@@ -58,8 +58,8 @@
 <br>
 
 - 1.1.1 유스케이스 다이어그램
-![유스케이스다이어그램](../source/images/project_structure/usecasediagram.png)
-  >[!note]
+![유스케이스다이어그램](../source/images/project_structure/usecasediagram.png)  
+  
   > 유스케이스다이어그램은 **사용자와 시스템이 제공하는 기능간의 관계**를 표현한다.  
   > 이를 사용하여 프로젝트의 기능과 시스템 구조를 정리하고자 한다.
   >
