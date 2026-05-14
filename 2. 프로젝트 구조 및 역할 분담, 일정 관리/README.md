@@ -202,13 +202,13 @@
     >
     ></details>
         
-    <details>
-    <summary> 화면 흐름도 </summary>
-        
-    ![화면 구성도](../source/images/project_structure/ui.png)
-    <br>
-        
-    </details>
+    ><details>
+    ><summary> 화면 흐름도 </summary>
+    >    
+    >![화면 구성도](../source/images/project_structure/ui.png)
+    ><br>
+    >    
+    ></details>
 
 <br>
 
