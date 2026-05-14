@@ -214,8 +214,7 @@
 
 - **1.1.4 데이터 스키마 시각화**
 
-   <details>
-   <summary> erDiagram </summary>
+   
   
    ```mermaid
     erDiagram
@@ -432,10 +431,11 @@
         preset_block ||--o{ slot_preset_block : "referenced"
         block ||--o{ slot_open_blocks : "referenced"
         subject ||--o{ sort_preference : "has"
-    ```
+   
+   ```
     
     
-</details>
+
 
 
 <br>
