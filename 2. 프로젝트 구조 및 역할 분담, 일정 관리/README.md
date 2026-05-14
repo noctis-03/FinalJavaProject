@@ -3114,13 +3114,14 @@
 <br>
 
 - 연동 지점 관리
->A와 B의 작업이 만나는 핵심 연동 지점은 다음 3곳이며, 사전에 인터페이스를 합의하고 우선적으로 구현한다.
 
 | 연동 지점 | A 측 | B 측 | 합의 필요 사항 |
 |-----------|------|------|----------------|
 | 과제 → 캘린더 마감일 연동 | CalendarService.addDeadlineMark() | AssignmentService.syncDeadlineToCalendar() | 메서드 시그니처, 이벤트명 |
 | 시간표 → 캘린더 반복 블록 | CalendarService.addScheduleBlock() | TimetableService.syncToCalendarAsRecurring() | 반복 블록 데이터 형식 |
 | 드래그 앤 드롭 (공통) | CalendarDropTarget | CanvasDropTarget | BlockTransferable 데이터 포맷, 드롭 유효성 규칙 |
+
+>A와 B의 작업이 만나는 핵심 연동 지점은 다음 3곳이며, 사전에 인터페이스를 합의하고 우선적으로 구현한다.
 
 <br>
 
