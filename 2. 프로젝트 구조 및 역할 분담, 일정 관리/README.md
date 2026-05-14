@@ -652,475 +652,475 @@
 
 - **1.3.1 통합 클래스 개요 다이어그램**
 
-```mermaid
-classDiagram
-    direction TB
-
-    %% ===== View 계층 (UI) =====
-    namespace View_Layer {
-        class MainFrame {
-            NavigationPanel
-            CalendarPagePanel
-            SubjectPagePanel
+    ```mermaid
+    classDiagram
+        direction TB
+    
+        %% ===== View 계층 (UI) =====
+        namespace View_Layer {
+            class MainFrame {
+                NavigationPanel
+                CalendarPagePanel
+                SubjectPagePanel
+            }
+    
+            class CalendarPagePanel {
+                CalendarGridPanel
+                PresetBlockPanel
+                WeatherWidget
+                AutomationPanel
+            }
+    
+            class SubjectPagePanel {
+                SubjectListPanel
+                SubjectDetailPanel
+                InfiniteCanvasPanel
+            }
+    
+            class InfiniteCanvasPanel {
+                CanvasViewport
+                GridRenderer
+                CanvasBlockComponent[]
+            }
+    
+            class CommonDialogs {
+                BlockEditDialog
+                PresetBlockCreateDialog
+                AssignmentInputDialog
+                TimetableInputDialog
+                ConfirmDeleteDialog
+                ConflictWarningDialog
+            }
+    
+            class ReusableComponents {
+                ColorPicker
+                TagChip
+                StatusBadge
+                DraggableComponent
+                BlockRenderer
+            }
         }
-
-        class CalendarPagePanel {
-            CalendarGridPanel
-            PresetBlockPanel
-            WeatherWidget
-            AutomationPanel
+    
+        %% ===== Controller 계층 =====
+        namespace Controller_Layer {
+            class CalendarController {
+                +onViewModeToggle()
+                +onBlockMove()
+                +onBlockCreate()
+                +onBlockDelete()
+                +refreshView()
+            }
+    
+            class SubjectController {
+                +onSubjectSelect()
+                +onAssignmentAdd()
+                +onFileBlockAdd()
+                +onSortChange()
+                +refreshSubjectDetail()
+            }
+    
+            class CanvasController {
+                +onBlockMove()
+                +onBlockResize()
+                +onZoomIn()
+                +onPan()
+                +saveCanvasState()
+            }
+    
+            class DragDropController {
+                +onDragStart()
+                +onDragUpdate()
+                +onDragEnd()
+                +cancelDrag()
+            }
+    
+            class AutomationController {
+                +onRuleCreate()
+                +onSlotFill()
+                +onExecuteClick()
+                +refreshRuleList()
+            }
+    
+            class TimetableController {
+                +onEntryAdd()
+                +onEntryDelete()
+                +refreshTimetableGrid()
+            }
         }
-
-        class SubjectPagePanel {
-            SubjectListPanel
-            SubjectDetailPanel
-            InfiniteCanvasPanel
+    
+        %% ===== DnD 시스템 =====
+        namespace DnD_System {
+            class BlockDragSource {
+                +registerComponent()
+                +startDrag()
+            }
+    
+            class CalendarDropTarget {
+                +getDatetimeAtPoint()
+                +isValidDropLocation()
+                +showDropHighlight()
+            }
+    
+            class CanvasDropTarget {
+                +getWorldPositionAtPoint()
+                +isValidDropLocation()
+                +getSnappedPosition()
+            }
+    
+            class BlockTransferable {
+                +getBlockId()
+                +getBlockType()
+            }
+    
+            class DragGhostPanel {
+                +showGhost()
+                +updatePosition()
+                +hideGhost()
+            }
         }
-
-        class InfiniteCanvasPanel {
-            CanvasViewport
-            GridRenderer
-            CanvasBlockComponent[]
+    
+        %% ===== Service 계층 =====
+        namespace Service_Layer {
+            class CalendarService {
+                +addScheduleBlock()
+                +moveBlock()
+                +detectConflicts()
+                +addDeadlineMark()
+            }
+    
+            class BlockService {
+                +createBlock()
+                +updateBlock()
+                +deleteBlock()
+                +duplicateBlock()
+            }
+    
+            class SubjectService {
+                +createSubject()
+                +getSubjectsBySemester()
+                +setActiveSemester()
+            }
+    
+            class AssignmentService {
+                +createAssignment()
+                +updateStatus()
+                +syncDeadlineToCalendar()
+                +getApproachingDeadlines()
+            }
+    
+            class TimetableService {
+                +addTimetableEntry()
+                +detectConflict()
+                +syncToCalendarAsRecurring()
+            }
+    
+            class FileBlockService {
+                +createFileBlock()
+                +openFile()
+                +validateFileType()
+                +addTag()
+            }
+    
+            class AutomationService {
+                +createRule()
+                +fillSlot()
+                +executeRule()
+                +isRuleComplete()
+            }
+    
+            class DragDropService {
+                +validateDrop()
+                +processCalendarDrop()
+                +processCanvasDrop()
+                +revertDrop()
+            }
+    
+            class EventBus {
+                +subscribe()
+                +publish()
+                +unsubscribe()
+            }
+    
+            class AutoSaveManager {
+                +markDirty()
+                +save()
+                +recoverLastState()
+            }
         }
-
-        class CommonDialogs {
-            BlockEditDialog
-            PresetBlockCreateDialog
-            AssignmentInputDialog
-            TimetableInputDialog
-            ConfirmDeleteDialog
-            ConflictWarningDialog
+    
+        %% ===== Model 계층 =====
+        namespace Model_Layer {
+            class Block {
+                <<abstract>>
+                id, blockType, name
+                color, memo
+            }
+    
+            class ScheduleBlock {
+                startDatetime, endDatetime
+                subjectId, isRecurring
+            }
+    
+            class PresetBlock {
+                durationMinutes
+                category
+            }
+    
+            class AssignmentBlock {
+                deadline, status
+                workDate, subjectId
+            }
+    
+            class FileBlock {
+                filePath, fileName
+                fileType, subjectId
+            }
+    
+            class TextBlock {
+                title, content
+                backgroundColor
+            }
+    
+            class LinkBlock {
+                url, displayName
+                linkType
+            }
+    
+            class AutomationBlock {
+                ruleId
+            }
+    
+            class Subject {
+                name, professor
+                classroom, color
+            }
+    
+            class Semester {
+                name, startDate
+                endDate, isActive
+            }
+    
+            class Timetable {
+                subjectId, dayOfWeek
+                startTime, endTime
+            }
+    
+            class CalendarModel {
+                currentViewMode
+                currentDate
+            }
+    
+            class AutomationRule {
+                name, context
+                commands[]
+            }
+    
+            class CanvasState {
+                posX, posY
+                width, height, zOrder
+            }
+    
+            class Enums {
+                BlockType
+                AssignmentStatus
+                ViewMode
+                Category
+                CommandType
+                SlotType
+            }
         }
-
-        class ReusableComponents {
-            ColorPicker
-            TagChip
-            StatusBadge
-            DraggableComponent
-            BlockRenderer
+    
+        %% ===== Database 계층 =====
+        namespace Database_Layer {
+            class DatabaseManager {
+                +getInstance()
+                +getConnection()
+                +backup()
+            }
+    
+            class SchemaInitializer {
+                +initializeAllTables()
+                +isSchemaInitialized()
+            }
+    
+            class TransactionManager {
+                +beginTransaction()
+                +commit()
+                +rollback()
+                +executeInTransaction()
+            }
+    
+            class BaseDAO {
+                <<abstract>>
+                +findById()
+                +findAll()
+                +insert()
+                +update()
+                +delete()
+            }
+    
+            class BlockDAOs {
+                BlockDAO
+                ScheduleBlockDAO
+                PresetBlockDAO
+                PresetBlockInstanceDAO
+                AssignmentDAO
+                FileBlockDAO
+                TextBlockDAO
+                LinkBlockDAO
+            }
+    
+            class DomainDAOs {
+                SubjectDAO
+                SemesterDAO
+                TimetableDAO
+                TagDAO
+                CanvasStateDAO
+            }
+    
+            class AutomationDAOs {
+                AutomationRuleDAO
+                AutomationCommandDAO
+                CommandSlotDAO
+                SlotNextWeekDAO
+                SlotDayOfWeekDAO
+                SlotPresetBlockDAO
+                SlotOpenBlocksDAO
+                ExecutionLogDAO
+            }
+    
+            class Mappers {
+                BlockMapper
+                SubjectMapper
+                AssignmentMapper
+                TimetableMapper
+                AutomationMapper
+            }
         }
-    }
-
-    %% ===== Controller 계층 =====
-    namespace Controller_Layer {
-        class CalendarController {
-            +onViewModeToggle()
-            +onBlockMove()
-            +onBlockCreate()
-            +onBlockDelete()
-            +refreshView()
-        }
-
-        class SubjectController {
-            +onSubjectSelect()
-            +onAssignmentAdd()
-            +onFileBlockAdd()
-            +onSortChange()
-            +refreshSubjectDetail()
-        }
-
-        class CanvasController {
-            +onBlockMove()
-            +onBlockResize()
-            +onZoomIn()
-            +onPan()
-            +saveCanvasState()
-        }
-
-        class DragDropController {
-            +onDragStart()
-            +onDragUpdate()
-            +onDragEnd()
-            +cancelDrag()
-        }
-
-        class AutomationController {
-            +onRuleCreate()
-            +onSlotFill()
-            +onExecuteClick()
-            +refreshRuleList()
-        }
-
-        class TimetableController {
-            +onEntryAdd()
-            +onEntryDelete()
-            +refreshTimetableGrid()
-        }
-    }
-
-    %% ===== DnD 시스템 =====
-    namespace DnD_System {
-        class BlockDragSource {
-            +registerComponent()
-            +startDrag()
-        }
-
-        class CalendarDropTarget {
-            +getDatetimeAtPoint()
-            +isValidDropLocation()
-            +showDropHighlight()
-        }
-
-        class CanvasDropTarget {
-            +getWorldPositionAtPoint()
-            +isValidDropLocation()
-            +getSnappedPosition()
-        }
-
-        class BlockTransferable {
-            +getBlockId()
-            +getBlockType()
-        }
-
-        class DragGhostPanel {
-            +showGhost()
-            +updatePosition()
-            +hideGhost()
-        }
-    }
-
-    %% ===== Service 계층 =====
-    namespace Service_Layer {
-        class CalendarService {
-            +addScheduleBlock()
-            +moveBlock()
-            +detectConflicts()
-            +addDeadlineMark()
-        }
-
-        class BlockService {
-            +createBlock()
-            +updateBlock()
-            +deleteBlock()
-            +duplicateBlock()
-        }
-
-        class SubjectService {
-            +createSubject()
-            +getSubjectsBySemester()
-            +setActiveSemester()
-        }
-
-        class AssignmentService {
-            +createAssignment()
-            +updateStatus()
-            +syncDeadlineToCalendar()
-            +getApproachingDeadlines()
-        }
-
-        class TimetableService {
-            +addTimetableEntry()
-            +detectConflict()
-            +syncToCalendarAsRecurring()
-        }
-
-        class FileBlockService {
-            +createFileBlock()
-            +openFile()
-            +validateFileType()
-            +addTag()
-        }
-
-        class AutomationService {
-            +createRule()
-            +fillSlot()
-            +executeRule()
-            +isRuleComplete()
-        }
-
-        class DragDropService {
-            +validateDrop()
-            +processCalendarDrop()
-            +processCanvasDrop()
-            +revertDrop()
-        }
-
-        class EventBus {
-            +subscribe()
-            +publish()
-            +unsubscribe()
-        }
-
-        class AutoSaveManager {
-            +markDirty()
-            +save()
-            +recoverLastState()
-        }
-    }
-
-    %% ===== Model 계층 =====
-    namespace Model_Layer {
-        class Block {
-            <<abstract>>
-            id, blockType, name
-            color, memo
-        }
-
-        class ScheduleBlock {
-            startDatetime, endDatetime
-            subjectId, isRecurring
-        }
-
-        class PresetBlock {
-            durationMinutes
-            category
-        }
-
-        class AssignmentBlock {
-            deadline, status
-            workDate, subjectId
-        }
-
-        class FileBlock {
-            filePath, fileName
-            fileType, subjectId
-        }
-
-        class TextBlock {
-            title, content
-            backgroundColor
-        }
-
-        class LinkBlock {
-            url, displayName
-            linkType
-        }
-
-        class AutomationBlock {
-            ruleId
-        }
-
-        class Subject {
-            name, professor
-            classroom, color
-        }
-
-        class Semester {
-            name, startDate
-            endDate, isActive
-        }
-
-        class Timetable {
-            subjectId, dayOfWeek
-            startTime, endTime
-        }
-
-        class CalendarModel {
-            currentViewMode
-            currentDate
-        }
-
-        class AutomationRule {
-            name, context
-            commands[]
-        }
-
-        class CanvasState {
-            posX, posY
-            width, height, zOrder
-        }
-
-        class Enums {
-            BlockType
-            AssignmentStatus
-            ViewMode
-            Category
-            CommandType
-            SlotType
-        }
-    }
-
-    %% ===== Database 계층 =====
-    namespace Database_Layer {
-        class DatabaseManager {
-            +getInstance()
-            +getConnection()
-            +backup()
-        }
-
-        class SchemaInitializer {
-            +initializeAllTables()
-            +isSchemaInitialized()
-        }
-
-        class TransactionManager {
-            +beginTransaction()
-            +commit()
-            +rollback()
-            +executeInTransaction()
-        }
-
-        class BaseDAO {
-            <<abstract>>
-            +findById()
-            +findAll()
-            +insert()
-            +update()
-            +delete()
-        }
-
-        class BlockDAOs {
-            BlockDAO
-            ScheduleBlockDAO
-            PresetBlockDAO
-            PresetBlockInstanceDAO
-            AssignmentDAO
-            FileBlockDAO
-            TextBlockDAO
-            LinkBlockDAO
-        }
-
-        class DomainDAOs {
-            SubjectDAO
-            SemesterDAO
-            TimetableDAO
-            TagDAO
-            CanvasStateDAO
-        }
-
-        class AutomationDAOs {
-            AutomationRuleDAO
-            AutomationCommandDAO
-            CommandSlotDAO
-            SlotNextWeekDAO
-            SlotDayOfWeekDAO
-            SlotPresetBlockDAO
-            SlotOpenBlocksDAO
-            ExecutionLogDAO
-        }
-
-        class Mappers {
-            BlockMapper
-            SubjectMapper
-            AssignmentMapper
-            TimetableMapper
-            AutomationMapper
-        }
-    }
-
-    %% ========================================
-    %% 계층 간 관계 (View → Controller)
-    %% ========================================
-    MainFrame --> CalendarController : user events
-    MainFrame --> SubjectController : user events
-    CalendarPagePanel --> CalendarController : calendar events
-    CalendarPagePanel --> AutomationController : automation events
-    SubjectPagePanel --> SubjectController : subject events
-    SubjectPagePanel --> TimetableController : timetable events
-    InfiniteCanvasPanel --> CanvasController : canvas events
-    ReusableComponents --> DragDropController : drag events
-
-    %% ========================================
-    %% 계층 간 관계 (Controller → Service)
-    %% ========================================
-    CalendarController --> CalendarService : delegates
-    CalendarController --> BlockService : delegates
-    SubjectController --> SubjectService : delegates
-    SubjectController --> AssignmentService : delegates
-    SubjectController --> FileBlockService : delegates
-    CanvasController --> BlockService : delegates
-    CanvasController --> FileBlockService : delegates
-    DragDropController --> DragDropService : delegates
-    AutomationController --> AutomationService : delegates
-    TimetableController --> TimetableService : delegates
-    TimetableController --> SubjectService : delegates
-
-    %% ========================================
-    %% Controller ↔ DnD 시스템
-    %% ========================================
-    DragDropController --> BlockDragSource : manages
-    DragDropController --> CalendarDropTarget : manages
-    DragDropController --> CanvasDropTarget : manages
-    DragDropController --> DragGhostPanel : manages
-    DragDropController --> CalendarController : notifies
-    DragDropController --> CanvasController : notifies
-
-    %% ========================================
-    %% Service 간 협력
-    %% ========================================
-    AssignmentService --> CalendarService : deadline sync
-    AssignmentService --> BlockService : block CRUD
-    TimetableService --> CalendarService : recurring sync
-    TimetableService --> SubjectService : subject create
-    AutomationService --> CalendarService : schedule register
-    AutomationService --> FileBlockService : open blocks
-    DragDropService --> CalendarService : calendar drop
-    DragDropService --> BlockService : block query
-
-    %% ========================================
-    %% Service → Common
-    %% ========================================
-    CalendarService --> EventBus : publish events
-    BlockService --> EventBus : publish events
-    SubjectService --> EventBus : publish events
-    AssignmentService --> EventBus : publish events
-    CalendarService --> AutoSaveManager : mark dirty
-    BlockService --> AutoSaveManager : mark dirty
-    SubjectService --> AutoSaveManager : mark dirty
-
-    %% ========================================
-    %% EventBus → View (역방향 갱신)
-    %% ========================================
-    EventBus --> MainFrame : notify UI refresh
-
-    %% ========================================
-    %% Service → Model (사용)
-    %% ========================================
-    CalendarService --> CalendarModel : manages
-    CalendarService --> ScheduleBlock : CRUD
-    BlockService --> Block : CRUD
-    SubjectService --> Subject : CRUD
-    SubjectService --> Semester : CRUD
-    AssignmentService --> AssignmentBlock : CRUD
-    TimetableService --> Timetable : CRUD
-    FileBlockService --> FileBlock : CRUD
-    AutomationService --> AutomationRule : CRUD
-
-    %% ========================================
-    %% Model 내부 관계
-    %% ========================================
-    Block <|-- ScheduleBlock
-    Block <|-- PresetBlock
-    Block <|-- AssignmentBlock
-    Block <|-- FileBlock
-    Block <|-- TextBlock
-    Block <|-- LinkBlock
-    Block <|-- AutomationBlock
-    Semester --> Subject : contains
-    Subject --> Timetable : has
-    Subject --> AssignmentBlock : has
-    Subject --> FileBlock : has
-    Subject --> CanvasState : has
-
-    %% ========================================
-    %% Service → Database (DAO 호출)
-    %% ========================================
-    CalendarService --> BlockDAOs : query/persist
-    BlockService --> BlockDAOs : query/persist
-    SubjectService --> DomainDAOs : query/persist
-    AssignmentService --> BlockDAOs : query/persist
-    TimetableService --> DomainDAOs : query/persist
-    FileBlockService --> BlockDAOs : query/persist
-    AutomationService --> AutomationDAOs : query/persist
-    AutoSaveManager --> TransactionManager : transaction
-
-    %% ========================================
-    %% Database 내부 관계
-    %% ========================================
-    DatabaseManager --> SchemaInitializer : init
-    DatabaseManager --> TransactionManager : provides
-    BaseDAO --> DatabaseManager : connection
-    BaseDAO --> TransactionManager : transaction
-    BaseDAO <|-- BlockDAOs
-    BaseDAO <|-- DomainDAOs
-    BaseDAO <|-- AutomationDAOs
-    BlockDAOs --> Mappers : ResultSet→Model
-    DomainDAOs --> Mappers : ResultSet→Model
-    AutomationDAOs --> Mappers : ResultSet→Model
-```
-
-<br>
-
+    
+        %% ========================================
+        %% 계층 간 관계 (View → Controller)
+        %% ========================================
+        MainFrame --> CalendarController : user events
+        MainFrame --> SubjectController : user events
+        CalendarPagePanel --> CalendarController : calendar events
+        CalendarPagePanel --> AutomationController : automation events
+        SubjectPagePanel --> SubjectController : subject events
+        SubjectPagePanel --> TimetableController : timetable events
+        InfiniteCanvasPanel --> CanvasController : canvas events
+        ReusableComponents --> DragDropController : drag events
+    
+        %% ========================================
+        %% 계층 간 관계 (Controller → Service)
+        %% ========================================
+        CalendarController --> CalendarService : delegates
+        CalendarController --> BlockService : delegates
+        SubjectController --> SubjectService : delegates
+        SubjectController --> AssignmentService : delegates
+        SubjectController --> FileBlockService : delegates
+        CanvasController --> BlockService : delegates
+        CanvasController --> FileBlockService : delegates
+        DragDropController --> DragDropService : delegates
+        AutomationController --> AutomationService : delegates
+        TimetableController --> TimetableService : delegates
+        TimetableController --> SubjectService : delegates
+    
+        %% ========================================
+        %% Controller ↔ DnD 시스템
+        %% ========================================
+        DragDropController --> BlockDragSource : manages
+        DragDropController --> CalendarDropTarget : manages
+        DragDropController --> CanvasDropTarget : manages
+        DragDropController --> DragGhostPanel : manages
+        DragDropController --> CalendarController : notifies
+        DragDropController --> CanvasController : notifies
+    
+        %% ========================================
+        %% Service 간 협력
+        %% ========================================
+        AssignmentService --> CalendarService : deadline sync
+        AssignmentService --> BlockService : block CRUD
+        TimetableService --> CalendarService : recurring sync
+        TimetableService --> SubjectService : subject create
+        AutomationService --> CalendarService : schedule register
+        AutomationService --> FileBlockService : open blocks
+        DragDropService --> CalendarService : calendar drop
+        DragDropService --> BlockService : block query
+    
+        %% ========================================
+        %% Service → Common
+        %% ========================================
+        CalendarService --> EventBus : publish events
+        BlockService --> EventBus : publish events
+        SubjectService --> EventBus : publish events
+        AssignmentService --> EventBus : publish events
+        CalendarService --> AutoSaveManager : mark dirty
+        BlockService --> AutoSaveManager : mark dirty
+        SubjectService --> AutoSaveManager : mark dirty
+    
+        %% ========================================
+        %% EventBus → View (역방향 갱신)
+        %% ========================================
+        EventBus --> MainFrame : notify UI refresh
+    
+        %% ========================================
+        %% Service → Model (사용)
+        %% ========================================
+        CalendarService --> CalendarModel : manages
+        CalendarService --> ScheduleBlock : CRUD
+        BlockService --> Block : CRUD
+        SubjectService --> Subject : CRUD
+        SubjectService --> Semester : CRUD
+        AssignmentService --> AssignmentBlock : CRUD
+        TimetableService --> Timetable : CRUD
+        FileBlockService --> FileBlock : CRUD
+        AutomationService --> AutomationRule : CRUD
+    
+        %% ========================================
+        %% Model 내부 관계
+        %% ========================================
+        Block <|-- ScheduleBlock
+        Block <|-- PresetBlock
+        Block <|-- AssignmentBlock
+        Block <|-- FileBlock
+        Block <|-- TextBlock
+        Block <|-- LinkBlock
+        Block <|-- AutomationBlock
+        Semester --> Subject : contains
+        Subject --> Timetable : has
+        Subject --> AssignmentBlock : has
+        Subject --> FileBlock : has
+        Subject --> CanvasState : has
+    
+        %% ========================================
+        %% Service → Database (DAO 호출)
+        %% ========================================
+        CalendarService --> BlockDAOs : query/persist
+        BlockService --> BlockDAOs : query/persist
+        SubjectService --> DomainDAOs : query/persist
+        AssignmentService --> BlockDAOs : query/persist
+        TimetableService --> DomainDAOs : query/persist
+        FileBlockService --> BlockDAOs : query/persist
+        AutomationService --> AutomationDAOs : query/persist
+        AutoSaveManager --> TransactionManager : transaction
+    
+        %% ========================================
+        %% Database 내부 관계
+        %% ========================================
+        DatabaseManager --> SchemaInitializer : init
+        DatabaseManager --> TransactionManager : provides
+        BaseDAO --> DatabaseManager : connection
+        BaseDAO --> TransactionManager : transaction
+        BaseDAO <|-- BlockDAOs
+        BaseDAO <|-- DomainDAOs
+        BaseDAO <|-- AutomationDAOs
+        BlockDAOs --> Mappers : ResultSet→Model
+        DomainDAOs --> Mappers : ResultSet→Model
+        AutomationDAOs --> Mappers : ResultSet→Model
+    ```
+    
+    <br>
+    
     >다음은 **축약된 통합 클래스 개요 다이어그램**이다.   
     >클래스의 개수가 매우 많으므로 아래에 다이어그램을 **계층별로 분리**하였다.  
     >[외부 사이트에서 클래스 다이어그램 보기](https://mermaid.ai/d/b173e0aa-0142-4af3-88cc-6b3ea7908b56)  
