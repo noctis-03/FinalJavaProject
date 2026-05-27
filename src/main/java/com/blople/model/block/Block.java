@@ -69,15 +69,15 @@ public abstract class Block {
      * DB 매핑 등 "재구성" 목적으로 영속 상태를 덮어쓰기 위한 protected hook.
      * 일반 비즈니스 코드는 호출하지 말 것.
      */
-    protected void restoreId(String id) {
+    public void restoreId(String id) {
         this.id = Objects.requireNonNull(id);
     }
 
-    protected void restoreCreatedAt(String createdAt) {
+    public void restoreCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
 
-    protected void restoreUpdatedAt(String updatedAt) {
+    public void restoreUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
     }
 
