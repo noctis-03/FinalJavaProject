@@ -66,23 +66,20 @@ public abstract class Block {
 
 
     /**
-     * DAO/Mapper 가 DB 에서 읽어온 영속 상태를 복원할 때만 사용한다.
-     * 일반 비즈니스 코드에서는 호출하지 말 것.
+     * DB 매핑 등 "재구성" 목적으로 영속 상태를 덮어쓰기 위한 protected hook.
+     * 일반 비즈니스 코드는 호출하지 말 것.
      */
-    public void restoreId(String id) {
+    protected void restoreId(String id) {
         this.id = Objects.requireNonNull(id);
     }
 
-    /** DAO/Mapper 전용. {@link #restoreId(String)} 참고. */
-    public void restoreCreatedAt(String createdAt) {
+    protected void restoreCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
 
-    /** DAO/Mapper 전용. {@link #restoreId(String)} 참고. */
-    public void restoreUpdatedAt(String updatedAt) {
+    protected void restoreUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
     }
-
 
 
     // ===== getter / setter =====
