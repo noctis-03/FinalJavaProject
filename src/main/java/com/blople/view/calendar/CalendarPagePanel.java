@@ -1,5 +1,6 @@
 package com.blople.view.calendar;
 
+import com.blople.model.block.PresetBlock;
 import com.blople.model.block.ScheduleBlock;
 import com.blople.model.enums.ViewMode;
 
@@ -19,12 +20,10 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * 캘린더 페이지 전체 레이아웃 (FR-01).
+ * 캘린더 페이지 전체 레이아웃 (FR-01, FR-02).
  *
- * <p>상단 툴바: [이전][오늘][다음]  날짜라벨  [주간/월간 토글]
- * 중앙: {@link CalendarGridPanel}
- *
- * <p>버튼 동작 자체는 Controller 가 콜백으로 주입한다.
+ * <p>좌측: {@link PresetBlockPanel} (미리블록)
+ * <p>우측: 상단 툴바 [이전][오늘][다음] 날짜라벨 [주간/월간 토글] + 중앙 {@link CalendarGridPanel}
  */
 public class CalendarPagePanel extends JPanel {
 
@@ -36,12 +35,19 @@ public class CalendarPagePanel extends JPanel {
     private final JButton viewToggle   = new JButton("월간 보기");
     private final JLabel  dateLabel    = new JLabel("―");
 
-    private final CalendarGridPanel gridPanel = new CalendarGridPanel();
+    private final PresetBlockPanel  presetPanel = new PresetBlockPanel();
+    private final CalendarGridPanel gridPanel   = new CalendarGridPanel();
 
     public CalendarPagePanel() {
         setLayout(new BorderLayout());
-        add(buildToolbar(), BorderLayout.NORTH);
-        add(gridPanel, BorderLayout.CENTER);
+
+        // 우측: 툴바 + 그리드
+        JPanel rightArea = new JPanel(new BorderLayout());
+        rightArea.add(buildToolbar(), BorderLayout.NORTH);
+        rightArea.add(gridPanel, BorderLayout.CENTER);
+
+        add(presetPanel, BorderLayout.WEST);
+        add(rightArea, BorderLayout.CENTER);
     }
 
     private JPanel buildToolbar() {
@@ -79,8 +85,8 @@ public class CalendarPagePanel extends JPanel {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
-    // ===== Controller 가 사용할 표시 갱신 메서드 =====
-    public void updateDateLabel(String text)        { dateLabel.setText(text); }
+    // ===== 표시 갱신 =====
+    public void updateDateLabel(String text)         { dateLabel.setText(text); }
     public void updateViewToggleLabel(ViewMode mode) {
         viewToggle.setText(mode == ViewMode.WEEK ? "월간 보기" : "주간 보기");
     }
@@ -89,8 +95,9 @@ public class CalendarPagePanel extends JPanel {
     public void setWeekBaseDate(LocalDate date)         { gridPanel.setWeekBaseDate(date); }
     public void setMonthYearMonth(int year, int month)  { gridPanel.setMonthYearMonth(year, month); }
     public void refresh(List<ScheduleBlock> blocks)     { gridPanel.refresh(blocks); }
+    public void setPresets(List<PresetBlock> presets)   { presetPanel.setPresets(presets); }
 
-    // ===== Controller 콜백 주입 =====
+    // ===== 캘린더 콜백 =====
     public void setOnPrev(Runnable r)      { prevButton.addActionListener(e -> r.run()); }
     public void setOnNext(Runnable r)      { nextButton.addActionListener(e -> r.run()); }
     public void setOnToday(Runnable r)     { todayButton.addActionListener(e -> r.run()); }
@@ -98,5 +105,11 @@ public class CalendarPagePanel extends JPanel {
     public void setOnBlockClick(Consumer<ScheduleBlock> cb) { gridPanel.setOnBlockClick(cb); }
     public void setOnDateClick(Consumer<LocalDate> cb)      { gridPanel.setOnDateClick(cb); }
 
+    // ===== 미리블록 콜백 =====
+    public void setOnPresetCreate(Runnable r)               { presetPanel.setOnCreate(r); }
+    public void setOnPresetPlace(Consumer<PresetBlock> cb)  { presetPanel.setOnPlace(cb); }
+    public void setOnPresetDelete(Consumer<PresetBlock> cb) { presetPanel.setOnDelete(cb); }
+
     public CalendarGridPanel getGridPanel() { return gridPanel; }
+    public PresetBlockPanel  getPresetPanel() { return presetPanel; }
 }
