@@ -32,7 +32,7 @@ public class App {
         runCalendarServiceSmokeTest(dbManager);
 
         SwingUtilities.invokeLater(() -> {
-            MainFrame frame = new MainFrame();
+            MainFrame frame = new MainFrame(dbManager);
             frame.setVisible(true);
         });
     }
@@ -96,10 +96,10 @@ public class App {
         System.out.println("[5] 6월 전체 일정 수 = "
                 + service.getBlocksForMonth(2026, 6).size());
 
-        // 6) 삭제
-        service.removeBlock(b1.getId());
-        service.removeBlock(b2.getId());
-        System.out.println("[6] 삭제 후 5월 일정 수 = "
+        // 6) 삭제 — 화면 확인을 위해 잠시 보류 (v0.3 진입 전 스모크 테스트 전체 제거 예정)
+        // service.removeBlock(b1.getId());
+        // service.removeBlock(b2.getId());
+        System.out.println("[6] 삭제 보류 → 5월 일정 수 = "
                 + service.getBlocksForMonth(2026, 5).size());
 
         bus.clear();
