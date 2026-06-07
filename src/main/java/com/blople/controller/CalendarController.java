@@ -1,40 +1,50 @@
 package com.blople.controller;
 
 import com.blople.common.EventBus;
+import com.blople.model.block.PresetBlock;
 import com.blople.model.block.ScheduleBlock;
 import com.blople.model.calendar.CalendarModel;
 import com.blople.model.enums.ViewMode;
 import com.blople.service.CalendarService;
+import com.blople.service.PresetBlockService;
 import com.blople.view.calendar.CalendarPagePanel;
+import com.blople.view.calendar.PresetBlockCreateDialog;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import java.awt.Window;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * 캘린더 페이지 컨트롤러 (FR-01).
+ * 캘린더 페이지 컨트롤러 (FR-01, FR-02).
  *
  * <p>책임:
  * <ul>
  *   <li>View(버튼/클릭) 이벤트 → Service 호출</li>
  *   <li>EventBus 구독 → 데이터 변경 시 View 자동 갱신</li>
  *   <li>CalendarModel 의 현재 상태를 View 표시(날짜 라벨 등)에 반영</li>
+ *   <li>미리블록 생성/배치/삭제 (FR-02)</li>
  * </ul>
  */
 public class CalendarController {
 
     private static final DateTimeFormatter MONTH_LABEL = DateTimeFormatter.ofPattern("yyyy년 M월");
+    private static final DateTimeFormatter TS_FMT_LOCAL = ScheduleBlock.TS_FORMATTER;
 
     private final CalendarService service;
+    private final PresetBlockService presetService;
     private final CalendarPagePanel view;
     private final CalendarModel model;
     private final EventBus eventBus = EventBus.getInstance();
 
-    public CalendarController(CalendarService service, CalendarPagePanel view) {
+    public CalendarController(CalendarService service,
+                              PresetBlockService presetService,
+                              CalendarPagePanel view) {
         this.service = service;
+        this.presetService = presetService;
         this.view = view;
         this.model = service.getCalendarModel();
     }
@@ -45,6 +55,7 @@ public class CalendarController {
         subscribeEvents();
         syncViewState();
         refreshView();
+        reloadPresets();
     }
 
     private void wireCallbacks() {
@@ -54,6 +65,10 @@ public class CalendarController {
         view.setOnViewToggle(this::onViewToggle);
         view.setOnBlockClick(this::onBlockClick);
         view.setOnDateClick(this::onDateClick);
+
+        view.setOnPresetCreate(this::onPresetCreate);
+        view.setOnPresetPlace(this::onPresetPlace);
+        view.setOnPresetDelete(this::onPresetDelete);
     }
 
     private void subscribeEvents() {
@@ -64,7 +79,7 @@ public class CalendarController {
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_DELETED, p -> refreshOnEdt());
     }
 
-    // ===== View 이벤트 핸들러 =====
+    // ===== 네비게이션 / 뷰 =====
     private void onNavigatePrev() {
         service.navigatePrev();
         syncViewState();
@@ -92,7 +107,6 @@ public class CalendarController {
     }
 
     private void onBlockClick(ScheduleBlock block) {
-        // v0.2 에서는 간단한 정보 표시. 편집 다이얼로그는 후속 단계.
         String msg = "일정: %s\n%s ~ %s".formatted(
                 block.getName(), block.getStartDatetime(), block.getEndDatetime());
         JOptionPane.showMessageDialog(view, msg, "일정 상세", JOptionPane.INFORMATION_MESSAGE);
@@ -104,6 +118,49 @@ public class CalendarController {
         service.goToDate(date);
         syncViewState();
         refreshView();
+    }
+
+    // ===== 미리블록 (FR-02) =====
+    private void reloadPresets() {
+        view.setPresets(presetService.getAll());
+    }
+
+    private void onPresetCreate() {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        PresetBlockCreateDialog dialog = new PresetBlockCreateDialog(owner);
+        dialog.setOnCreate(form -> {
+            try {
+                presetService.create(form.name(), form.colorHex(),
+                        form.durationMinutes(), form.category());
+                reloadPresets();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                        "생성 실패", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+        dialog.setVisible(true);
+    }
+
+    private void onPresetPlace(PresetBlock preset) {
+        // 현재 기준 날짜의 오전 9시에 배치 (드래그 배치는 후속 단계에서 시각 지정)
+        LocalDate date = model.getCurrentDate();
+        String start = date.atTime(9, 0).format(TS_FMT_LOCAL);
+        try {
+            presetService.placeOnCalendar(preset.getId(), start);
+            // addScheduleBlock 이 SCHEDULE_BLOCK_CREATED 발행 → refreshOnEdt 로 자동 갱신
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(view, ex.getMessage(),
+                    "배치 실패", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void onPresetDelete(PresetBlock preset) {
+        int ok = JOptionPane.showConfirmDialog(view,
+                "미리블록 '" + preset.getName() + "' 을(를) 삭제할까요?\n(이미 배치된 일정에는 영향 없음)",
+                "미리블록 삭제", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (ok != JOptionPane.YES_OPTION) return;
+        presetService.delete(preset.getId());
+        reloadPresets();
     }
 
     // ===== View 상태 동기화 =====
