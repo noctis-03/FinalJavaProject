@@ -110,6 +110,7 @@ public class CalendarPagePanel extends JPanel {
     public void setOnPresetPlace(Consumer<PresetBlock> cb)  { presetPanel.setOnPlace(cb); }
     public void setOnPresetDelete(Consumer<PresetBlock> cb) { presetPanel.setOnDelete(cb); }
 
+    public WeekViewPanel getWeekViewPanel() { return gridPanel.getWeekViewPanel(); }
     public CalendarGridPanel getGridPanel() { return gridPanel; }
     public PresetBlockPanel  getPresetPanel() { return presetPanel; }
 }
