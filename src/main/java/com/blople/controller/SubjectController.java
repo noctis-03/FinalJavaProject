@@ -1,16 +1,21 @@
 package com.blople.controller;
 
 import com.blople.common.EventBus;
-import com.blople.model.block.AssignmentBlock;
-import com.blople.model.block.FileBlock;
+import com.blople.model.block.TextBlock;
+import com.blople.model.canvas.CanvasState;
 import com.blople.model.enums.AssignmentStatus;
 import com.blople.model.subject.Semester;
 import com.blople.model.subject.Subject;
 import com.blople.model.subject.Timetable;
 import com.blople.service.AssignmentService;
+import com.blople.service.CanvasService;
 import com.blople.service.FileBlockService;
 import com.blople.service.SubjectService;
 import com.blople.service.TimetableService;
+import com.blople.view.canvas.CanvasBlockComponent;
+import com.blople.view.canvas.InfiniteCanvasPanel;
+import com.blople.view.canvas.TextBlockComponent;
+import com.blople.view.canvas.TextBlockEditDialog;
 import com.blople.view.subject.AssignmentInputDialog;
 import com.blople.view.subject.SubjectPagePanel;
 import com.blople.view.subject.TimetableInputDialog;
@@ -20,12 +25,16 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.Window;
+import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 과목 페이지 컨트롤러 (FR-03, FR-04, FR-05, FR-09, FR-10).
+ * 과목 페이지 컨트롤러 (FR-03, FR-04, FR-05, FR-06, FR-08, FR-09, FR-10).
+ *
+ * <p>좌측 2단 트리(과목 → 과제/파일) 조작 + 우측 무한 캔버스(텍스트 블록) 연동.
  */
 public class SubjectController {
 
@@ -33,6 +42,7 @@ public class SubjectController {
     private final TimetableService  timetableService;
     private final AssignmentService assignmentService;
     private final FileBlockService  fileBlockService;
+    private final CanvasService     canvasService;
     private final SubjectPagePanel  view;
     private final EventBus eventBus = EventBus.getInstance();
 
@@ -43,25 +53,38 @@ public class SubjectController {
                              TimetableService timetableService,
                              AssignmentService assignmentService,
                              FileBlockService fileBlockService,
+                             CanvasService canvasService,
                              SubjectPagePanel view) {
         this.subjectService = subjectService;
         this.timetableService = timetableService;
         this.assignmentService = assignmentService;
         this.fileBlockService = fileBlockService;
+        this.canvasService = canvasService;
         this.view = view;
     }
 
     public void initialize() {
         activeSemester = subjectService.ensureActiveSemester();
 
-        view.setOnSubjectSelect(this::onSubjectSelect);
+        // 트리가 과제/파일을 즉시 가져올 수 있도록 공급자 주입
+        view.setSuppliers(
+                subjectId -> assignmentService.getBySubject(subjectId),
+                subjectId -> fileBlockService.getBySubject(subjectId));
+
         view.setOnTimetableClick(this::openTimetableDialog);
-        view.setOnAddAssignment(this::openAssignmentDialog);
+        view.setOnSubjectSelect(this::onSubjectSelect);
+        view.setOnAddAssignment(this::onAddAssignment);
         view.setOnStatusChange(this::onStatusChange);
         view.setOnDeleteAssignment(this::onDeleteAssignment);
         view.setOnAddFile(this::onAddFile);
         view.setOnOpenFile(this::onOpenFile);
         view.setOnDeleteFile(this::onDeleteFile);
+
+        // 캔버스 콜백
+        InfiniteCanvasPanel canvas = view.getCanvasPanel();
+        canvas.setOnCreateRequest(this::onCanvasCreateText);
+        canvas.setOnEditRequest(this::onCanvasEditBlock);
+        canvas.setOnMovedOrResized(this::onCanvasBlockMoved);
 
         eventBus.subscribe(EventBus.SUBJECT_CHANGED, p -> SwingUtilities.invokeLater(this::reloadSubjects));
 
@@ -73,22 +96,25 @@ public class SubjectController {
         view.setSubjects(subjects);
     }
 
-    // ===== 과목 선택 =====
+    // ===== 과목 선택 → 우측 캔버스 로드 =====
     private void onSubjectSelect(Subject subject) {
         this.selectedSubject = subject;
-        List<AssignmentBlock> assignments = assignmentService.getBySubject(subject.getId());
-        List<FileBlock> files = fileBlockService.getBySubject(subject.getId());
-        view.showSubjectDetail(subject, assignments, files);
+        loadCanvas(subject);
     }
 
-    private void refreshAssignmentsForSelected() {
-        if (selectedSubject == null) return;
-        view.refreshAssignments(assignmentService.getBySubject(selectedSubject.getId()));
+    private void loadCanvas(Subject subject) {
+        InfiniteCanvasPanel canvas = view.getCanvasPanel();
+        List<CanvasBlockComponent> comps = new ArrayList<>();
+        for (CanvasService.Placed<TextBlock> p : canvasService.loadTextBlocks(subject.getId())) {
+            CanvasState st = p.state();
+            comps.add(new TextBlockComponent(p.block(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+        }
+        canvas.setBlocks(comps);
     }
 
-    private void refreshFilesForSelected() {
-        if (selectedSubject == null) return;
-        view.refreshFiles(fileBlockService.getBySubject(selectedSubject.getId()));
+    private void refreshExpanded() {
+        if (selectedSubject != null) view.reloadExpandedSubject(selectedSubject);
     }
 
     // ===== 시간표 =====
@@ -131,29 +157,27 @@ public class SubjectController {
     }
 
     // ===== 과제 =====
-    private void openAssignmentDialog() {
-        if (selectedSubject == null) return;
+    private void onAddAssignment(Subject subject) {
+        this.selectedSubject = subject;
         Window owner = SwingUtilities.getWindowAncestor(view);
         AssignmentInputDialog dialog = new AssignmentInputDialog(owner);
-        dialog.setOnSave(this::handleAssignmentSave);
+        dialog.setOnSave(form -> {
+            try {
+                assignmentService.createAssignment(
+                        subject.getId(), form.name(), subject.getColor(),
+                        form.deadline(), form.description());
+                view.reloadExpandedSubject(subject);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(owner, "과제 생성 실패: " + ex.getMessage(),
+                        "오류", JOptionPane.ERROR_MESSAGE);
+            }
+        });
         dialog.setVisible(true);
-    }
-
-    private void handleAssignmentSave(AssignmentInputDialog.AssignmentForm form) {
-        try {
-            assignmentService.createAssignment(
-                    selectedSubject.getId(), form.name(), selectedSubject.getColor(),
-                    form.deadline(), form.description());
-            refreshAssignmentsForSelected();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(view),
-                    "과제 생성 실패: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
-        }
     }
 
     private void onStatusChange(String blockId, AssignmentStatus status) {
         assignmentService.updateStatus(blockId, status);
-        refreshAssignmentsForSelected();
+        refreshExpanded();
     }
 
     private void onDeleteAssignment(String blockId) {
@@ -163,12 +187,12 @@ public class SubjectController {
                 "과제 삭제", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (ok != JOptionPane.YES_OPTION) return;
         assignmentService.deleteAssignment(blockId);
-        refreshAssignmentsForSelected();
+        refreshExpanded();
     }
 
     // ===== 파일 =====
-    private void onAddFile() {
-        if (selectedSubject == null) return;
+    private void onAddFile(Subject subject) {
+        this.selectedSubject = subject;
         Window owner = SwingUtilities.getWindowAncestor(view);
 
         JFileChooser chooser = new JFileChooser();
@@ -180,8 +204,8 @@ public class SubjectController {
         File file = chooser.getSelectedFile();
 
         try {
-            fileBlockService.createFromFile(selectedSubject.getId(), selectedSubject.getColor(), file);
-            refreshFilesForSelected();
+            fileBlockService.createFromFile(subject.getId(), subject.getColor(), file);
+            view.reloadExpandedSubject(subject);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(owner, ex.getMessage(),
                     "파일 등록 실패", JOptionPane.WARNING_MESSAGE);
@@ -205,6 +229,50 @@ public class SubjectController {
                 "파일 삭제", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (ok != JOptionPane.YES_OPTION) return;
         fileBlockService.delete(blockId);
-        refreshFilesForSelected();
+        refreshExpanded();
+    }
+
+    // ===== 캔버스 (FR-06, FR-08) =====
+    private void onCanvasCreateText(Point2D world) {
+        if (selectedSubject == null) return;
+        CanvasService.Placed<TextBlock> placed =
+                canvasService.createTextBlock(selectedSubject.getId(), world.getX(), world.getY());
+        CanvasState st = placed.state();
+        view.getCanvasPanel().addBlock(new TextBlockComponent(
+                placed.block(), st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+    }
+
+    private void onCanvasEditBlock(CanvasBlockComponent comp) {
+        if (!(comp instanceof TextBlockComponent tc)) return;
+        TextBlock model = tc.getModel();
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        TextBlockEditDialog dialog =
+                new TextBlockEditDialog(owner, model.getTitle(), model.getContent());
+        dialog.setOnSave((title, content) -> {
+            canvasService.updateTextContent(model.getId(), title, content);
+            model.setTitle(title);
+            model.setContent(content);
+            view.getCanvasPanel().repaint();
+        });
+        dialog.setVisible(true);
+    }
+
+    private void onCanvasBlockMoved(CanvasBlockComponent comp) {
+        if (selectedSubject == null) return;
+        canvasService.findStateByBlock(comp.getBlockId()).ifPresentOrElse(
+                existing -> {
+                    existing.setPosX(comp.getWorldX());
+                    existing.setPosY(comp.getWorldY());
+                    existing.setWidth(comp.getWorldW());
+                    existing.setHeight(comp.getWorldH());
+                    canvasService.saveState(existing);
+                },
+                () -> {
+                    CanvasState fresh = new CanvasState(
+                            selectedSubject.getId(), comp.getBlockId(),
+                            comp.getWorldX(), comp.getWorldY(),
+                            comp.getWorldW(), comp.getWorldH());
+                    canvasService.saveState(fresh);
+                });
     }
 }
