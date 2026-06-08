@@ -151,36 +151,37 @@ public class WeekViewPanel extends JPanel {
         setSelectedBlockId(null);
     }
 
-    /**
-     * 패널 좌표(px) → 해당 위치의 일정 시작 시각.
-     * 시간축/헤더 영역이거나 범위를 벗어나면 null.
-     *
-     * <p>드롭 지점은 30분 슬롯 경계로 스냅한다.
-     */
-    public java.time.LocalDateTime datetimeAt(int mx, int my) {
-        if (my < HEADER_HEIGHT) return null;
+    // ============================================================
+    //  좌표 → 시각 변환 (FR-11 드롭 좌표 계산용)
+    // ============================================================
 
-        int colW = dayColumnWidth();
+    /**
+     * 패널 좌표(px) → 해당 위치의 일정 시작 시각 (30분 슬롯 스냅).
+     * 시간축/헤더 영역이거나 범위를 벗어나면 null.
+     */
+    public LocalDateTime datetimeAt(int mx, int my) {
+        if (my < HEADER_HEIGHT) return null;
         if (mx < TIME_AXIS_WIDTH) return null;
 
+        int colW = dayColumnWidth();
         int dayIndex = (mx - TIME_AXIS_WIDTH) / colW;
         if (dayIndex < 0 || dayIndex > 6) return null;
 
-        int rowsFromTop = (my - HEADER_HEIGHT) / SLOT_HEIGHT; // 30분 슬롯 단위
+        int rowsFromTop = (my - HEADER_HEIGHT) / SLOT_HEIGHT;
         if (rowsFromTop < 0) rowsFromTop = 0;
         if (rowsFromTop > rowsPerDay - 1) rowsFromTop = rowsPerDay - 1;
 
-        java.time.LocalDate date = weekStart.plusDays(dayIndex);
+        LocalDate date = weekStart.plusDays(dayIndex);
         int totalMinutes = rowsFromTop * 30;
-        int hour = startHour + totalMinutes / 60;
-        int minute = totalMinutes % 60;
-        return date.atTime(hour, minute);
+        return date.atTime(startHour + totalMinutes / 60, totalMinutes % 60);
     }
 
-    /** 외부(DropTarget)에서 좌표 계산이 가능하도록 현재 주 시작일 노출. */
-    public java.time.LocalDate getWeekStart() { return weekStart; }
+    /** 현재 주 시작일(일요일) 노출 — 외부 좌표 계산 보조용. */
+    public LocalDate getWeekStart() { return weekStart; }
 
-
+    // ============================================================
+    //  렌더링
+    // ============================================================
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
