@@ -7,15 +7,18 @@ import com.blople.database.DatabaseManager;
 import com.blople.database.TransactionManager;
 import com.blople.database.dao.AssignmentDAO;
 import com.blople.database.dao.BlockDAO;
+import com.blople.database.dao.CanvasStateDAO;
 import com.blople.database.dao.FileBlockDAO;
 import com.blople.database.dao.PresetBlockDAO;
 import com.blople.database.dao.ScheduleBlockDAO;
 import com.blople.database.dao.SemesterDAO;
 import com.blople.database.dao.SubjectDAO;
+import com.blople.database.dao.TextBlockDAO;
 import com.blople.database.dao.TimetableDAO;
 import com.blople.model.calendar.CalendarModel;
 import com.blople.service.AssignmentService;
 import com.blople.service.CalendarService;
+import com.blople.service.CanvasService;
 import com.blople.service.FileBlockService;
 import com.blople.service.PresetBlockService;
 import com.blople.service.SubjectService;
@@ -33,10 +36,7 @@ import java.awt.Dimension;
  * 메인 윈도우 프레임.
  * 상단 NavigationPanel + 캘린더/과목 페이지를 CardLayout 으로 전환한다.
  *
- * <p>v0.2: 캘린더 = {@link CalendarPagePanel} + {@link CalendarController}
- * <p>v0.3: 과목/시간표 = {@link SubjectPagePanel} + {@link SubjectController}
- * <p>v0.4: 과제 블록(AssignmentService) + 파일 블록(FileBlockService)
- * <p>v0.5: 미리블록(PresetBlockService)
+ * <p>v0.2 캘린더 / v0.3 과목·시간표 / v0.4 과제·파일 / v0.5 미리블록·DnD / v0.6 무한 캔버스.
  */
 public class MainFrame extends JFrame {
 
@@ -56,7 +56,6 @@ public class MainFrame extends JFrame {
     public MainFrame(DatabaseManager dbManager) {
         super(Constants.APP_NAME + " v" + Constants.APP_VERSION);
 
-        // === 기본 설정 ===
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(Constants.MAIN_WINDOW_WIDTH, Constants.MAIN_WINDOW_HEIGHT);
         setMinimumSize(new Dimension(Constants.MIN_WINDOW_WIDTH, Constants.MIN_WINDOW_HEIGHT));
@@ -68,7 +67,7 @@ public class MainFrame extends JFrame {
         BlockDAO blockDAO            = new BlockDAO(dbManager);
         ScheduleBlockDAO scheduleDAO = new ScheduleBlockDAO(dbManager, blockDAO, tx);
 
-        // === 의존성 조립 (캘린더 + 미리블록) ===
+        // === 캘린더 + 미리블록 ===
         CalendarModel model         = new CalendarModel();
         CalendarService calendarSvc = new CalendarService(model, scheduleDAO);
 
@@ -78,38 +77,38 @@ public class MainFrame extends JFrame {
         calendarPagePanel  = new CalendarPagePanel();
         calendarController = new CalendarController(calendarSvc, presetSvc, calendarPagePanel);
 
-        // === 의존성 조립 (과목 / 시간표 / 과제 / 파일) ===
-        SemesterDAO   semesterDAO   = new SemesterDAO(dbManager);
-        SubjectDAO    subjectDAO    = new SubjectDAO(dbManager);
-        TimetableDAO  timetableDAO  = new TimetableDAO(dbManager);
-        AssignmentDAO assignmentDAO = new AssignmentDAO(dbManager, blockDAO, tx);
-        FileBlockDAO  fileBlockDAO  = new FileBlockDAO(dbManager, blockDAO, tx);
+        // === 과목 / 시간표 / 과제 / 파일 / 캔버스 ===
+        SemesterDAO    semesterDAO    = new SemesterDAO(dbManager);
+        SubjectDAO     subjectDAO     = new SubjectDAO(dbManager);
+        TimetableDAO   timetableDAO   = new TimetableDAO(dbManager);
+        AssignmentDAO  assignmentDAO  = new AssignmentDAO(dbManager, blockDAO, tx);
+        FileBlockDAO   fileBlockDAO   = new FileBlockDAO(dbManager, blockDAO, tx);
+        TextBlockDAO   textBlockDAO   = new TextBlockDAO(dbManager, blockDAO, tx);
+        CanvasStateDAO canvasStateDAO = new CanvasStateDAO(dbManager);
 
         SubjectService    subjectSvc    = new SubjectService(semesterDAO, subjectDAO);
         TimetableService  timetableSvc  = new TimetableService(timetableDAO, scheduleDAO, subjectSvc);
         AssignmentService assignmentSvc = new AssignmentService(assignmentDAO, scheduleDAO);
         FileBlockService  fileBlockSvc  = new FileBlockService(fileBlockDAO);
+        CanvasService     canvasSvc     = new CanvasService(textBlockDAO, canvasStateDAO);
 
         subjectPagePanel  = new SubjectPagePanel();
         subjectController = new SubjectController(
-                subjectSvc, timetableSvc, assignmentSvc, fileBlockSvc, subjectPagePanel);
+                subjectSvc, timetableSvc, assignmentSvc, fileBlockSvc, canvasSvc, subjectPagePanel);
 
-        // === 상단 네비게이션 ===
+        // === 네비게이션 ===
         navigationPanel = new NavigationPanel();
         navigationPanel.setOnCalendarTabClick(e -> showCalendarPage());
         navigationPanel.setOnSubjectTabClick (e -> showSubjectPage());
 
-        // === 컨텐츠 영역 (CardLayout) ===
         contentPanel.add(calendarPagePanel, CARD_CALENDAR);
         contentPanel.add(subjectPagePanel,  CARD_SUBJECT);
 
         add(navigationPanel, BorderLayout.NORTH);
         add(contentPanel,    BorderLayout.CENTER);
 
-        // 초기 화면: 캘린더
         showCalendarPage();
 
-        // === 컨트롤러 초기화 (콜백 연결 + 초기 렌더 + 이벤트 구독) ===
         calendarController.initialize();
         subjectController.initialize();
     }
