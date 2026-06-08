@@ -1,6 +1,7 @@
 package com.blople.controller;
 
 import com.blople.common.EventBus;
+import com.blople.dnd.CalendarDropTarget;
 import com.blople.model.block.PresetBlock;
 import com.blople.model.block.ScheduleBlock;
 import com.blople.model.calendar.CalendarModel;
@@ -14,12 +15,13 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import java.awt.Window;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * 캘린더 페이지 컨트롤러 (FR-01, FR-02).
+ * 캘린더 페이지 컨트롤러 (FR-01, FR-02, FR-11).
  *
  * <p>책임:
  * <ul>
@@ -27,6 +29,7 @@ import java.util.List;
  *   <li>EventBus 구독 → 데이터 변경 시 View 자동 갱신</li>
  *   <li>CalendarModel 의 현재 상태를 View 표시(날짜 라벨 등)에 반영</li>
  *   <li>미리블록 생성/배치/삭제 (FR-02)</li>
+ *   <li>미리블록 → 캘린더 드래그앤드롭 배치 (FR-11)</li>
  * </ul>
  */
 public class CalendarController {
@@ -40,6 +43,8 @@ public class CalendarController {
     private final CalendarModel model;
     private final EventBus eventBus = EventBus.getInstance();
 
+    private CalendarDropTarget calendarDropTarget;
+
     public CalendarController(CalendarService service,
                               PresetBlockService presetService,
                               CalendarPagePanel view) {
@@ -49,10 +54,11 @@ public class CalendarController {
         this.model = service.getCalendarModel();
     }
 
-    /** MainFrame 조립 후 1회 호출 — 콜백 연결 + 초기 렌더 + 이벤트 구독. */
+    /** MainFrame 조립 후 1회 호출 — 콜백 연결 + 드롭 타겟 등록 + 초기 렌더 + 이벤트 구독. */
     public void initialize() {
         wireCallbacks();
         subscribeEvents();
+        registerDropTarget();
         syncViewState();
         refreshView();
         reloadPresets();
@@ -77,6 +83,12 @@ public class CalendarController {
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_UPDATED, p -> refreshOnEdt());
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_MOVED,   p -> refreshOnEdt());
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_DELETED, p -> refreshOnEdt());
+    }
+
+    /** 주간 뷰를 미리블록 드롭 타겟으로 등록 (FR-11). */
+    private void registerDropTarget() {
+        calendarDropTarget = new CalendarDropTarget(view.getWeekViewPanel());
+        calendarDropTarget.setOnDrop(this::onPresetDropped);
     }
 
     // ===== 네비게이션 / 뷰 =====
@@ -141,13 +153,12 @@ public class CalendarController {
         dialog.setVisible(true);
     }
 
+    /** "배치" 버튼 — 현재 기준 날짜의 오전 9시에 배치. */
     private void onPresetPlace(PresetBlock preset) {
-        // 현재 기준 날짜의 오전 9시에 배치 (드래그 배치는 후속 단계에서 시각 지정)
         LocalDate date = model.getCurrentDate();
         String start = date.atTime(9, 0).format(TS_FMT_LOCAL);
         try {
             presetService.placeOnCalendar(preset.getId(), start);
-            // addScheduleBlock 이 SCHEDULE_BLOCK_CREATED 발행 → refreshOnEdt 로 자동 갱신
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(view, ex.getMessage(),
                     "배치 실패", JOptionPane.WARNING_MESSAGE);
@@ -161,6 +172,21 @@ public class CalendarController {
         if (ok != JOptionPane.YES_OPTION) return;
         presetService.delete(preset.getId());
         reloadPresets();
+    }
+
+    // ===== 드래그앤드롭 배치 (FR-11) =====
+
+    /** 미리블록이 캘린더 특정 시각에 드롭됨 → 그 시각에 일정 배치. */
+    private void onPresetDropped(String presetBlockId, LocalDateTime when) {
+        try {
+            String start = when.format(TS_FMT_LOCAL);
+            presetService.placeOnCalendar(presetBlockId, start);
+            // addScheduleBlock 이 SCHEDULE_BLOCK_CREATED 발행 → refreshOnEdt 자동 갱신
+        } catch (Exception ex) {
+            SwingUtilities.invokeLater(() ->
+                    JOptionPane.showMessageDialog(view, ex.getMessage(),
+                            "배치 실패", JOptionPane.WARNING_MESSAGE));
+        }
     }
 
     // ===== View 상태 동기화 =====
