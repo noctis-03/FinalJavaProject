@@ -1,6 +1,8 @@
 package com.blople.view.calendar;
 
+import com.blople.dnd.BlockDragSource;
 import com.blople.model.block.PresetBlock;
+import com.blople.model.enums.BlockType;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -11,6 +13,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -21,7 +24,8 @@ import java.util.function.Consumer;
  * 캘린더 페이지 좌측 미리블록 패널 (FR-02).
  *
  * <p>미리블록 템플릿 목록을 카드로 표시하고, "＋ 미리블록" 으로 생성한다.
- * 각 카드의 "배치" 버튼으로 캘린더에 일정으로 꽂는다(드래그는 후속 단계).
+ * 각 카드는 캘린더 주간 뷰로 <b>드래그</b>하여 일정으로 배치할 수 있고(FR-11),
+ * "배치" 버튼으로도 (현재 날짜 09:00) 배치할 수 있다.
  */
 public class PresetBlockPanel extends JPanel {
 
@@ -87,6 +91,10 @@ public class PresetBlockPanel extends JPanel {
                         BorderFactory.createLineBorder(new Color(0xE0E0E0)),
                         BorderFactory.createEmptyBorder(6, 8, 6, 8))));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 76));
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        // ★ 드래그 소스 등록 — 카드를 끌면 이 미리블록 id 를 운반한다 (FR-11)
+        new BlockDragSource(card, p::getId, BlockType.PRESET);
 
         JPanel info = new JPanel();
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
