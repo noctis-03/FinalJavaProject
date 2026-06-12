@@ -9,6 +9,7 @@ import com.blople.database.dao.AssignmentDAO;
 import com.blople.database.dao.BlockDAO;
 import com.blople.database.dao.CanvasStateDAO;
 import com.blople.database.dao.FileBlockDAO;
+import com.blople.database.dao.LinkBlockDAO;
 import com.blople.database.dao.PresetBlockDAO;
 import com.blople.database.dao.ScheduleBlockDAO;
 import com.blople.database.dao.SemesterDAO;
@@ -34,9 +35,6 @@ import java.awt.Dimension;
 
 /**
  * 메인 윈도우 프레임.
- * 상단 NavigationPanel + 캘린더/과목 페이지를 CardLayout 으로 전환한다.
- *
- * <p>v0.2 캘린더 / v0.3 과목·시간표 / v0.4 과제·파일 / v0.5 미리블록·DnD / v0.6 무한 캔버스.
  */
 public class MainFrame extends JFrame {
 
@@ -50,8 +48,8 @@ public class MainFrame extends JFrame {
     private final CalendarPagePanel  calendarPagePanel;
     private final CalendarController calendarController;
 
-    private final SubjectPagePanel   subjectPagePanel;
-    private final SubjectController   subjectController;
+    private final SubjectPagePanel  subjectPagePanel;
+    private final SubjectController  subjectController;
 
     public MainFrame(DatabaseManager dbManager) {
         super(Constants.APP_NAME + " v" + Constants.APP_VERSION);
@@ -84,13 +82,15 @@ public class MainFrame extends JFrame {
         AssignmentDAO  assignmentDAO  = new AssignmentDAO(dbManager, blockDAO, tx);
         FileBlockDAO   fileBlockDAO   = new FileBlockDAO(dbManager, blockDAO, tx);
         TextBlockDAO   textBlockDAO   = new TextBlockDAO(dbManager, blockDAO, tx);
+        LinkBlockDAO   linkBlockDAO   = new LinkBlockDAO(dbManager, blockDAO, tx);
         CanvasStateDAO canvasStateDAO = new CanvasStateDAO(dbManager);
 
         SubjectService    subjectSvc    = new SubjectService(semesterDAO, subjectDAO);
         TimetableService  timetableSvc  = new TimetableService(timetableDAO, scheduleDAO, subjectSvc);
         AssignmentService assignmentSvc = new AssignmentService(assignmentDAO, scheduleDAO);
         FileBlockService  fileBlockSvc  = new FileBlockService(fileBlockDAO);
-        CanvasService     canvasSvc     = new CanvasService(textBlockDAO, canvasStateDAO);
+        CanvasService     canvasSvc     = new CanvasService(
+                textBlockDAO, linkBlockDAO, fileBlockDAO, canvasStateDAO);
 
         subjectPagePanel  = new SubjectPagePanel();
         subjectController = new SubjectController(
