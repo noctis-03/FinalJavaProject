@@ -1,14 +1,15 @@
 package com.blople.view.subject;
 
+import com.blople.dnd.BlockDragSource;
 import com.blople.model.block.AssignmentBlock;
 import com.blople.model.block.FileBlock;
 import com.blople.model.enums.AssignmentStatus;
+import com.blople.model.enums.BlockType;
 import com.blople.model.subject.Subject;
 import com.blople.view.calendar.BlockRenderer;
 import com.blople.view.component.CollapsiblePanel;
 
 import javax.swing.BorderFactory;
-import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -26,38 +27,28 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * 좌측 과목 트리 패널 (FR-03, FR-04, FR-05).
+ * 좌측 과목 트리 패널 (FR-03, FR-04, FR-05, FR-08, FR-11).
  *
- * <p>2단 아코디언:
- * <pre>
- *   [과목]              ← 1단 (펼치면 그 과목 선택 → 우측 캔버스 전환)
- *     [과제] (＋)        ← 2단
- *       - 과제 행들
- *     [파일] (＋)        ← 2단
- *       - 파일 행들
- * </pre>
- *
- * <p>한 번에 하나의 과목만 펼쳐진다(아코디언). 상단에 "시간표 입력" 버튼.
+ * <p>2단 아코디언(과목 → 과제/파일). 파일 행은 무한 캔버스로 드래그하여 배치할 수 있다.
  */
 public class SubjectTreePanel extends JPanel {
 
     private final JButton timetableButton = new JButton("＋ 시간표 입력");
     private final JPanel container = new JPanel();
 
-    // 과목 id → 1단 패널 (아코디언 토글용)
     private final List<CollapsiblePanel> subjectPanels = new ArrayList<>();
 
     // 콜백
     private Runnable onTimetableClick;
     private Consumer<Subject> onSubjectSelect;
-    private Consumer<Subject> onAddAssignment;      // 어떤 과목에 과제 추가
+    private Consumer<Subject> onAddAssignment;
     private BiConsumer<String, AssignmentStatus> onStatusChange;
     private Consumer<String> onDeleteAssignment;
-    private Consumer<Subject> onAddFile;            // 어떤 과목에 파일 추가
+    private Consumer<Subject> onAddFile;
     private Consumer<String> onOpenFile;
     private Consumer<String> onDeleteFile;
 
-    // 데이터 공급자 — 과목 펼칠 때 그 과목의 과제/파일을 가져온다
+    // 데이터 공급자
     private java.util.function.Function<String, List<AssignmentBlock>> assignmentSupplier;
     private java.util.function.Function<String, List<FileBlock>> fileSupplier;
 
@@ -87,14 +78,12 @@ public class SubjectTreePanel extends JPanel {
         return p;
     }
 
-    /** 데이터 공급자 주입 (컨트롤러가 설정). */
     public void setSuppliers(java.util.function.Function<String, List<AssignmentBlock>> assignmentSupplier,
                              java.util.function.Function<String, List<FileBlock>> fileSupplier) {
         this.assignmentSupplier = assignmentSupplier;
         this.fileSupplier = fileSupplier;
     }
 
-    /** 과목 목록을 받아 1단 아코디언을 다시 구성. */
     public void setSubjects(List<Subject> subjects) {
         container.removeAll();
         subjectPanels.clear();
@@ -109,7 +98,7 @@ public class SubjectTreePanel extends JPanel {
                 subjectPanels.add(sp);
                 container.add(sp);
             }
-            container.add(javax.swing.Box.createVerticalGlue()); // ★ 남는 공간을 아래로 밀어냄
+            container.add(javax.swing.Box.createVerticalGlue());
         }
         container.revalidate();
         container.repaint();
@@ -119,7 +108,6 @@ public class SubjectTreePanel extends JPanel {
         CollapsiblePanel panel = new CollapsiblePanel("📚 " + subject.getName(), false, 0);
         panel.setTitleColor(BlockRenderer.parseColor(subject.getColor(), new Color(0x333333)));
 
-        // 2단: 과제 섹션
         CollapsiblePanel assignmentSection = new CollapsiblePanel("과제", true, 1);
         JButton addAssignBtn = smallButton("＋");
         addAssignBtn.addActionListener(e -> {
@@ -127,7 +115,6 @@ public class SubjectTreePanel extends JPanel {
         });
         assignmentSection.addHeaderAction(addAssignBtn);
 
-        // 2단: 파일 섹션
         CollapsiblePanel fileSection = new CollapsiblePanel("파일", true, 1);
         JButton addFileBtn = smallButton("＋");
         addFileBtn.addActionListener(e -> {
@@ -138,7 +125,6 @@ public class SubjectTreePanel extends JPanel {
         panel.addContent(assignmentSection);
         panel.addContent(fileSection);
 
-        // 과목 헤더 클릭 → 아코디언(다른 과목 접기) + 선택 + 내용 로드
         panel.setOnHeaderClick(() -> {
             boolean willExpand = !panel.isExpanded();
             collapseAllExcept(panel);
@@ -152,7 +138,6 @@ public class SubjectTreePanel extends JPanel {
         return panel;
     }
 
-
     private void collapseAllExcept(CollapsiblePanel keep) {
         for (CollapsiblePanel p : subjectPanels) {
             if (p != keep) p.setExpanded(false);
@@ -162,7 +147,6 @@ public class SubjectTreePanel extends JPanel {
     private void loadSections(Subject subject,
                               CollapsiblePanel assignmentSection,
                               CollapsiblePanel fileSection) {
-        // 과제
         assignmentSection.clearContent();
         List<AssignmentBlock> assignments =
                 assignmentSupplier != null ? assignmentSupplier.apply(subject.getId()) : List.of();
@@ -174,7 +158,6 @@ public class SubjectTreePanel extends JPanel {
             }
         }
 
-        // 파일
         fileSection.clearContent();
         List<FileBlock> files =
                 fileSupplier != null ? fileSupplier.apply(subject.getId()) : List.of();
@@ -189,11 +172,9 @@ public class SubjectTreePanel extends JPanel {
         repaint();
     }
 
-    /** 현재 펼쳐진 과목의 섹션을 다시 로드 (추가/삭제 후 갱신용). */
     public void reloadExpandedSubject(Subject subject) {
         for (CollapsiblePanel sp : subjectPanels) {
             if (sp.isExpanded()) {
-                // 1단 본문 = [과제섹션, 파일섹션]
                 var comps = sp.getContentPanel().getComponents();
                 if (comps.length >= 2
                         && comps[0] instanceof CollapsiblePanel as
@@ -249,6 +230,10 @@ public class SubjectTreePanel extends JPanel {
         JLabel name = new JLabel(fileIcon(f.getFileType()) + " " + f.getFileName());
         name.setFont(new Font("SansSerif", Font.PLAIN, 12));
         if (!valid) name.setForeground(new Color(0xE5484D));
+
+        // ★ 파일 행을 캔버스로 드래그 — 실제 block_id 운반 (FR-05 + FR-08 + FR-11)
+        new BlockDragSource(row,  f::getId, BlockType.FILE);
+        new BlockDragSource(name, f::getId, BlockType.FILE);
 
         JPanel ctrl = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         ctrl.setOpaque(false);
