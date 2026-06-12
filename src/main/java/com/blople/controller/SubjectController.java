@@ -1,9 +1,13 @@
 package com.blople.controller;
 
 import com.blople.common.EventBus;
+import com.blople.dnd.CanvasDropTarget;
+import com.blople.model.block.FileBlock;
+import com.blople.model.block.LinkBlock;
 import com.blople.model.block.TextBlock;
 import com.blople.model.canvas.CanvasState;
 import com.blople.model.enums.AssignmentStatus;
+import com.blople.model.enums.BlockType;
 import com.blople.model.subject.Semester;
 import com.blople.model.subject.Subject;
 import com.blople.model.subject.Timetable;
@@ -13,7 +17,10 @@ import com.blople.service.FileBlockService;
 import com.blople.service.SubjectService;
 import com.blople.service.TimetableService;
 import com.blople.view.canvas.CanvasBlockComponent;
+import com.blople.view.canvas.FileBlockComponent;
 import com.blople.view.canvas.InfiniteCanvasPanel;
+import com.blople.view.canvas.LinkBlockComponent;
+import com.blople.view.canvas.LinkBlockEditDialog;
 import com.blople.view.canvas.TextBlockComponent;
 import com.blople.view.canvas.TextBlockEditDialog;
 import com.blople.view.subject.AssignmentInputDialog;
@@ -21,9 +28,12 @@ import com.blople.view.subject.SubjectPagePanel;
 import com.blople.view.subject.TimetableInputDialog;
 
 import javax.swing.JFileChooser;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.Point;
 import java.awt.Window;
 import java.awt.geom.Point2D;
 import java.io.File;
@@ -32,9 +42,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 과목 페이지 컨트롤러 (FR-03, FR-04, FR-05, FR-06, FR-08, FR-09, FR-10).
+ * 과목 페이지 컨트롤러 (FR-03 ~ FR-11).
  *
- * <p>좌측 2단 트리(과목 → 과제/파일) 조작 + 우측 무한 캔버스(텍스트 블록) 연동.
+ * <p>좌측 2단 트리(과목 → 과제/파일) + 우측 무한 캔버스(텍스트/링크/파일 블록) 연동.
  */
 public class SubjectController {
 
@@ -48,6 +58,8 @@ public class SubjectController {
 
     private Semester activeSemester;
     private Subject  selectedSubject;
+
+    private CanvasDropTarget canvasDropTarget;
 
     public SubjectController(SubjectService subjectService,
                              TimetableService timetableService,
@@ -66,7 +78,6 @@ public class SubjectController {
     public void initialize() {
         activeSemester = subjectService.ensureActiveSemester();
 
-        // 트리가 과제/파일을 즉시 가져올 수 있도록 공급자 주입
         view.setSuppliers(
                 subjectId -> assignmentService.getBySubject(subjectId),
                 subjectId -> fileBlockService.getBySubject(subjectId));
@@ -83,8 +94,15 @@ public class SubjectController {
         // 캔버스 콜백
         InfiniteCanvasPanel canvas = view.getCanvasPanel();
         canvas.setOnCreateRequest(this::onCanvasCreateText);
-        canvas.setOnEditRequest(this::onCanvasEditBlock);
+        canvas.setOnEditRequest(this::onCanvasDoubleClickBlock);
         canvas.setOnMovedOrResized(this::onCanvasBlockMoved);
+        canvas.setOnDeleteRequest(this::onCanvasDeleteBlock);
+        canvas.setOnEmptyContextMenu(this::showEmptyContextMenu);
+        canvas.setOnBlockContextMenu(this::showBlockContextMenu);
+
+        // 팔레트/파일 → 캔버스 드롭 (FR-11)
+        canvasDropTarget = new CanvasDropTarget(canvas);
+        canvasDropTarget.setOnDrop(this::onCanvasDropped);
 
         eventBus.subscribe(EventBus.SUBJECT_CHANGED, p -> SwingUtilities.invokeLater(this::reloadSubjects));
 
@@ -96,20 +114,33 @@ public class SubjectController {
         view.setSubjects(subjects);
     }
 
-    // ===== 과목 선택 → 우측 캔버스 로드 =====
+    // ===== 과목 선택 → 헤더 + 캔버스 로드 =====
     private void onSubjectSelect(Subject subject) {
         this.selectedSubject = subject;
+        view.showSubjectInHeader(subject);
         loadCanvas(subject);
     }
 
     private void loadCanvas(Subject subject) {
         InfiniteCanvasPanel canvas = view.getCanvasPanel();
         List<CanvasBlockComponent> comps = new ArrayList<>();
+
         for (CanvasService.Placed<TextBlock> p : canvasService.loadTextBlocks(subject.getId())) {
             CanvasState st = p.state();
             comps.add(new TextBlockComponent(p.block(),
                     st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
         }
+        for (CanvasService.Placed<LinkBlock> p : canvasService.loadLinkBlocks(subject.getId())) {
+            CanvasState st = p.state();
+            comps.add(new LinkBlockComponent(p.block(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+        }
+        for (CanvasService.Placed<FileBlock> p : canvasService.loadFileBlocks(subject.getId())) {
+            CanvasState st = p.state();
+            comps.add(new FileBlockComponent(p.block(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+        }
+
         canvas.setBlocks(comps);
     }
 
@@ -190,7 +221,7 @@ public class SubjectController {
         refreshExpanded();
     }
 
-    // ===== 파일 =====
+    // ===== 파일 (트리) =====
     private void onAddFile(Subject subject) {
         this.selectedSubject = subject;
         Window owner = SwingUtilities.getWindowAncestor(view);
@@ -222,41 +253,144 @@ public class SubjectController {
         }
     }
 
+    /** 트리에서 파일 블록 자체 삭제 — 캔버스 배치도 함께 사라짐(canvas_state CASCADE). */
     private void onDeleteFile(String blockId) {
         Window owner = SwingUtilities.getWindowAncestor(view);
         int ok = JOptionPane.showConfirmDialog(owner,
-                "이 파일 블록을 삭제할까요?\n(원본 파일은 삭제되지 않습니다)",
+                "이 파일 블록을 삭제할까요?\n(원본 파일은 삭제되지 않으며, 캔버스 배치도 함께 제거됩니다)",
                 "파일 삭제", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (ok != JOptionPane.YES_OPTION) return;
         fileBlockService.delete(blockId);
         refreshExpanded();
+        // 캔버스에 떠 있던 동일 블록 컴포넌트가 있으면 다시 로드해 정리
+        if (selectedSubject != null) loadCanvas(selectedSubject);
     }
 
-    // ===== 캔버스 (FR-06, FR-08) =====
+    // ===== 캔버스 생성 (FR-06, FR-07, FR-08, FR-11) =====
     private void onCanvasCreateText(Point2D world) {
         if (selectedSubject == null) return;
+        createTextAt(world.getX(), world.getY());
+    }
+
+    /** 팔레트(메모/링크) 또는 트리 파일 블록이 캔버스에 드롭됨. */
+    private void onCanvasDropped(BlockType type, String blockId, Point2D world) {
+        if (selectedSubject == null) {
+            JOptionPane.showMessageDialog(
+                    SwingUtilities.getWindowAncestor(view),
+                    "먼저 과목을 선택하세요.",
+                    "안내", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        switch (type) {
+            case TEXT -> createTextAt(world.getX(), world.getY());
+            case LINK -> createLinkAt(world.getX(), world.getY());
+            case FILE -> placeFileAt(blockId, world.getX(), world.getY());
+            default -> { /* 미지원 종류 무시 */ }
+        }
+    }
+
+    private void createTextAt(double x, double y) {
         CanvasService.Placed<TextBlock> placed =
-                canvasService.createTextBlock(selectedSubject.getId(), world.getX(), world.getY());
+                canvasService.createTextBlock(selectedSubject.getId(), x, y);
         CanvasState st = placed.state();
         view.getCanvasPanel().addBlock(new TextBlockComponent(
                 placed.block(), st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
     }
 
-    private void onCanvasEditBlock(CanvasBlockComponent comp) {
-        if (!(comp instanceof TextBlockComponent tc)) return;
-        TextBlock model = tc.getModel();
+    private void createLinkAt(double x, double y) {
         Window owner = SwingUtilities.getWindowAncestor(view);
-        TextBlockEditDialog dialog =
-                new TextBlockEditDialog(owner, model.getTitle(), model.getContent());
-        dialog.setOnSave((title, content) -> {
-            canvasService.updateTextContent(model.getId(), title, content);
-            model.setTitle(title);
-            model.setContent(content);
-            view.getCanvasPanel().repaint();
+        LinkBlockEditDialog dialog = new LinkBlockEditDialog(owner);
+        dialog.setOnSave((url, displayName) -> {
+            try {
+                CanvasService.Placed<LinkBlock> placed =
+                        canvasService.createLinkBlock(selectedSubject.getId(), url, displayName, x, y);
+                CanvasState st = placed.state();
+                view.getCanvasPanel().addBlock(new LinkBlockComponent(
+                        placed.block(), st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                        "링크 생성 실패", JOptionPane.WARNING_MESSAGE);
+            }
         });
         dialog.setVisible(true);
     }
 
+    /** 트리의 기존 파일 블록을 캔버스에 배치 (FR-05 + FR-08). */
+    private void placeFileAt(String fileBlockId, double x, double y) {
+        // 이미 캔버스에 떠 있으면 위치만 갱신 (중복 컴포넌트 방지)
+        boolean already = canvasService.isFilePlaced(fileBlockId);
+
+        canvasService.placeFileBlock(selectedSubject.getId(), fileBlockId, x, y)
+                .ifPresent(placed -> {
+                    if (already) {
+                        // 이미 화면에 있던 컴포넌트는 다시 로드해 새 위치로 반영
+                        loadCanvas(selectedSubject);
+                    } else {
+                        CanvasState st = placed.state();
+                        view.getCanvasPanel().addBlock(new FileBlockComponent(
+                                placed.block(), st.getPosX(), st.getPosY(),
+                                st.getWidth(), st.getHeight()));
+                    }
+                });
+    }
+
+    // ===== 캔버스 더블클릭: 메모/링크는 편집, 파일은 열기 =====
+    private void onCanvasDoubleClickBlock(CanvasBlockComponent comp) {
+        if (comp instanceof FileBlockComponent fc) {
+            openFileFromCanvas(fc);
+        } else {
+            onCanvasEditBlock(comp);
+        }
+    }
+
+    private void openFileFromCanvas(FileBlockComponent fc) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        try {
+            fc.getModel().openFile();
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                    "파일 열기 실패", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    // ===== 캔버스 편집 (메모/링크) =====
+    private void onCanvasEditBlock(CanvasBlockComponent comp) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+
+        if (comp instanceof TextBlockComponent tc) {
+            TextBlock model = tc.getModel();
+            TextBlockEditDialog dialog =
+                    new TextBlockEditDialog(owner, model.getTitle(), model.getContent());
+            dialog.setOnSave((title, content) -> {
+                canvasService.updateTextContent(model.getId(), title, content);
+                model.setTitle(title);
+                model.setContent(content);
+                view.getCanvasPanel().repaint();
+            });
+            dialog.setVisible(true);
+
+        } else if (comp instanceof LinkBlockComponent lc) {
+            LinkBlock model = lc.getModel();
+            LinkBlockEditDialog dialog =
+                    new LinkBlockEditDialog(owner, model.getUrl(), model.getDisplayName());
+            dialog.setOnSave((url, displayName) -> {
+                try {
+                    canvasService.updateLink(model.getId(), url, displayName);
+                    model.setUrl(url);
+                    String name = (displayName == null || displayName.isBlank()) ? url : displayName;
+                    model.setDisplayName(name);
+                    model.setName(name);
+                    view.getCanvasPanel().repaint();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                            "링크 수정 실패", JOptionPane.WARNING_MESSAGE);
+                }
+            });
+            dialog.setVisible(true);
+        }
+    }
+
+    // ===== 캔버스 이동/리사이즈 저장 =====
     private void onCanvasBlockMoved(CanvasBlockComponent comp) {
         if (selectedSubject == null) return;
         canvasService.findStateByBlock(comp.getBlockId()).ifPresentOrElse(
@@ -274,5 +408,99 @@ public class SubjectController {
                             comp.getWorldW(), comp.getWorldH());
                     canvasService.saveState(fresh);
                 });
+    }
+
+    // ===== 캔버스 삭제 (Delete 키 / 메뉴) =====
+    private void onCanvasDeleteBlock(CanvasBlockComponent comp) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+
+        // 파일 블록은 "캔버스에서만 치우기"(트리엔 남김)
+        boolean isFile = comp instanceof FileBlockComponent;
+        String message = isFile
+                ? "이 파일 블록을 캔버스에서 치울까요?\n(파일 목록과 원본 파일은 그대로 유지됩니다)"
+                : "이 블록을 삭제할까요?";
+
+        int ok = JOptionPane.showConfirmDialog(owner, message,
+                isFile ? "캔버스에서 치우기" : "블록 삭제",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (ok != JOptionPane.YES_OPTION) return;
+
+        if (comp instanceof TextBlockComponent) {
+            canvasService.deleteTextBlock(comp.getBlockId());
+        } else if (comp instanceof LinkBlockComponent) {
+            canvasService.deleteLinkBlock(comp.getBlockId());
+        } else if (comp instanceof FileBlockComponent) {
+            canvasService.removeFilePlacement(comp.getBlockId());  // 배치만 제거
+        }
+        view.getCanvasPanel().removeBlock(comp);
+    }
+
+    // ===== 캔버스 우클릭 메뉴 =====
+    private void showEmptyContextMenu(Point screen, Point2D world) {
+        if (selectedSubject == null) {
+            JOptionPane.showMessageDialog(
+                    SwingUtilities.getWindowAncestor(view),
+                    "먼저 과목을 선택하세요.",
+                    "안내", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        JPopupMenu menu = new JPopupMenu();
+
+        JMenuItem addText = new JMenuItem("📝 메모 추가");
+        addText.addActionListener(e -> createTextAt(world.getX(), world.getY()));
+
+        JMenuItem addLink = new JMenuItem("🔗 링크 추가");
+        addLink.addActionListener(e -> createLinkAt(world.getX(), world.getY()));
+
+        menu.add(addText);
+        menu.add(addLink);
+        menu.show(view.getCanvasPanel(), screen.x, screen.y);
+    }
+
+    private void showBlockContextMenu(CanvasBlockComponent comp, Point screen) {
+        JPopupMenu menu = new JPopupMenu();
+
+        if (comp instanceof FileBlockComponent fc) {
+            JMenuItem open = new JMenuItem("📂 파일 열기");
+            open.addActionListener(e -> openFileFromCanvas(fc));
+            open.setEnabled(fc.getModel().isFileValid());
+            menu.add(open);
+
+            menu.addSeparator();
+
+            JMenuItem remove = new JMenuItem("캔버스에서 치우기");
+            remove.addActionListener(e -> onCanvasDeleteBlock(comp));
+            menu.add(remove);
+
+        } else {
+            JMenuItem edit = new JMenuItem("편집");
+            edit.addActionListener(e -> onCanvasEditBlock(comp));
+            menu.add(edit);
+
+            if (comp instanceof LinkBlockComponent lc) {
+                JMenuItem openLink = new JMenuItem("🔗 브라우저에서 열기");
+                openLink.addActionListener(e -> openLinkInBrowser(lc));
+                menu.add(openLink);
+            }
+
+            menu.addSeparator();
+
+            JMenuItem delete = new JMenuItem("삭제");
+            delete.addActionListener(e -> onCanvasDeleteBlock(comp));
+            menu.add(delete);
+        }
+
+        menu.show(view.getCanvasPanel(), screen.x, screen.y);
+    }
+
+    private void openLinkInBrowser(LinkBlockComponent lc) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        try {
+            lc.getModel().openInBrowser();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(owner,
+                    "브라우저를 열 수 없습니다: " + ex.getMessage(),
+                    "링크 열기 실패", JOptionPane.WARNING_MESSAGE);
+        }
     }
 }
