@@ -25,18 +25,17 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * 무한 캔버스 패널 (FR-08).
+ * 무한 캔버스 패널 (FR-08, FR-12).
  *
- * <p>격자 + 팬/줌 위에 {@link CanvasBlockComponent} 들을 그린다.
- * 마우스 분기:
+ * <p>마우스 분기:
  * <ul>
  *   <li>빈 곳 드래그 → 팬</li>
- *   <li>블록 위 드래그 → 이동 (격자 스냅)</li>
+ *   <li>블록 위 드래그 → 이동 (격자 스냅). 단, 손 뗀 위치 아래에 다른 블록이 있으면
+ *       "블록 위에 블록 드롭" 콜백 발행 → 컨트롤러가 연결 여부 판단</li>
  *   <li>블록 우하단 핸들 드래그 → 리사이즈</li>
- *   <li>빈 곳 더블클릭 → 새 텍스트 블록 생성 요청</li>
- *   <li>블록 더블클릭 → 편집 요청</li>
- *   <li>우클릭(빈 곳/블록) → 컨텍스트 메뉴 요청</li>
- *   <li>Delete 키 → 선택 블록 삭제 요청</li>
+ *   <li>빈 곳 더블클릭 → 새 텍스트 블록 생성 요청 / 블록 더블클릭 → 편집·실행 요청</li>
+ *   <li>우클릭 → 컨텍스트 메뉴 요청</li>
+ *   <li>Delete → 선택 블록 삭제 요청</li>
  *   <li>휠 → 커서 기준 줌</li>
  * </ul>
  */
@@ -54,16 +53,26 @@ public class InfiniteCanvasPanel extends JPanel {
     private CanvasBlockComponent active;
     private CanvasBlockComponent selected;
 
-    // 콜백 (Controller 주입)
-    private Consumer<Point2D> onCreateRequest;                 // 빈 곳 더블클릭(world 좌표)
-    private Consumer<CanvasBlockComponent> onEditRequest;      // 블록 더블클릭
-    private Consumer<CanvasBlockComponent> onMovedOrResized;   // 이동·리사이즈 종료 → 저장
-    private Consumer<CanvasBlockComponent> onDeleteRequest;    // Delete 키 / 메뉴 삭제
+    // MOVE 시작 시점의 world 좌표 (연결 시 원위치 복귀용)
+    private double dragOriginWorldX;
+    private double dragOriginWorldY;
 
-    /** 빈 곳 우클릭 — (화면 좌표, 그 지점의 world 좌표). */
+    // 콜백 (Controller 주입)
+    private Consumer<Point2D> onCreateRequest;
+    private Consumer<CanvasBlockComponent> onEditRequest;
+    private Consumer<CanvasBlockComponent> onMovedOrResized;
+    private Consumer<CanvasBlockComponent> onDeleteRequest;
     private BiConsumer<Point, Point2D> onEmptyContextMenu;
-    /** 블록 우클릭 — (블록, 화면 좌표). */
     private BiConsumer<CanvasBlockComponent, Point> onBlockContextMenu;
+
+    /** 블록을 다른 블록 위에 떨어뜨림: (끌린 블록, 대상 블록, 끌린 블록의 원래 worldX, 원래 worldY). */
+    private DropOnBlockHandler onBlockDroppedOnBlock;
+
+    @FunctionalInterface
+    public interface DropOnBlockHandler {
+        void onDrop(CanvasBlockComponent dragged, CanvasBlockComponent target,
+                    double originWorldX, double originWorldY);
+    }
 
     public InfiniteCanvasPanel() {
         setBackground(BG);
@@ -74,10 +83,14 @@ public class InfiniteCanvasPanel extends JPanel {
     public CanvasViewport getViewport()    { return viewport; }
     public GridRenderer  getGridRenderer() { return gridRenderer; }
 
-    /** 화면 좌표(드롭 지점)를 격자 스냅된 world 좌표로 변환. (DnD 배치용) */
     public Point2D toSnappedWorld(Point screenPoint) {
         Point2D world = viewport.screenToWorld(screenPoint.x, screenPoint.y);
         return gridRenderer.snap(world.getX(), world.getY());
+    }
+
+    /** 화면 좌표에 있는 최상위 블록 반환 (없으면 null). */
+    public CanvasBlockComponent blockAt(int screenX, int screenY) {
+        return topBlockAt(screenX, screenY);
     }
 
     // ===== 블록 목록 관리 =====
@@ -119,15 +132,12 @@ public class InfiniteCanvasPanel extends JPanel {
     public void setOnBlockContextMenu(BiConsumer<CanvasBlockComponent, Point> cb) {
         this.onBlockContextMenu = cb;
     }
+    public void setOnBlockDroppedOnBlock(DropOnBlockHandler cb) { this.onBlockDroppedOnBlock = cb; }
 
     private void installMouseHandlers() {
         MouseAdapter ma = new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) {
-                // 우클릭(또는 팝업 트리거)은 컨텍스트 메뉴 처리
-                if (e.isPopupTrigger()) {
-                    handlePopup(e);
-                    return;
-                }
+                if (e.isPopupTrigger()) { handlePopup(e); return; }
                 if (!SwingUtilities.isLeftMouseButton(e)) return;
 
                 lastPoint = e.getPoint();
@@ -141,6 +151,9 @@ public class InfiniteCanvasPanel extends JPanel {
                     active = hit;
                     select(hit);
                     mode = Mode.MOVE;
+                    // 이동 시작 위치 기억 (연결 시 복귀용)
+                    dragOriginWorldX = hit.getWorldX();
+                    dragOriginWorldY = hit.getWorldY();
                 } else {
                     select(null);
                     mode = Mode.PAN;
@@ -175,18 +188,31 @@ public class InfiniteCanvasPanel extends JPanel {
             }
 
             @Override public void mouseReleased(MouseEvent e) {
-                if (e.isPopupTrigger()) {       // 일부 OS 는 release 에서 팝업 트리거
-                    handlePopup(e);
-                    return;
-                }
-                if ((mode == Mode.MOVE || mode == Mode.RESIZE) && active != null) {
-                    if (mode == Mode.MOVE) {
-                        Point2D snapped = gridRenderer.snap(active.getWorldX(), active.getWorldY());
-                        active.setWorldPos(snapped.getX(), snapped.getY());
+                if (e.isPopupTrigger()) { handlePopup(e); return; }
+
+                if (mode == Mode.MOVE && active != null) {
+                    // 손 뗀 지점 아래에 자기 자신이 아닌 다른 블록이 있으면 "드롭-온-블록"
+                    CanvasBlockComponent target = topBlockExcept(e.getX(), e.getY(), active);
+                    if (target != null && onBlockDroppedOnBlock != null) {
+                        onBlockDroppedOnBlock.onDrop(active, target, dragOriginWorldX, dragOriginWorldY);
+                        // 위치 확정/복귀는 컨트롤러가 판단하므로 여기서는 저장하지 않는다.
+                        mode = Mode.NONE;
+                        active = null;
+                        lastPoint = null;
+                        repaint();
+                        return;
                     }
+                    // 일반 이동 종료: 격자 스냅 후 저장
+                    Point2D snapped = gridRenderer.snap(active.getWorldX(), active.getWorldY());
+                    active.setWorldPos(snapped.getX(), snapped.getY());
+                    if (onMovedOrResized != null) onMovedOrResized.accept(active);
+                    repaint();
+
+                } else if (mode == Mode.RESIZE && active != null) {
                     if (onMovedOrResized != null) onMovedOrResized.accept(active);
                     repaint();
                 }
+
                 mode = Mode.NONE;
                 active = null;
                 lastPoint = null;
@@ -226,9 +252,8 @@ public class InfiniteCanvasPanel extends JPanel {
         });
     }
 
-    /** 우클릭 위치가 블록 위면 블록 메뉴, 빈 곳이면 빈 곳 메뉴 요청. */
     private void handlePopup(MouseEvent e) {
-        requestFocusInWindow(); // Delete 키가 먹도록 포커스 확보
+        requestFocusInWindow();
         Point screen = e.getPoint();
         CanvasBlockComponent hit = topBlockAt(e.getX(), e.getY());
         if (hit != null) {
@@ -266,6 +291,15 @@ public class InfiniteCanvasPanel extends JPanel {
     private CanvasBlockComponent topBlockAt(int sx, int sy) {
         for (int i = blocks.size() - 1; i >= 0; i--) {
             if (blocks.get(i).contains(viewport, sx, sy)) return blocks.get(i);
+        }
+        return null;
+    }
+
+    /** 특정 블록(except)을 제외하고 화면 좌표 위 최상위 블록 찾기. */
+    private CanvasBlockComponent topBlockExcept(int sx, int sy, CanvasBlockComponent except) {
+        for (int i = blocks.size() - 1; i >= 0; i--) {
+            CanvasBlockComponent c = blocks.get(i);
+            if (c != except && c.contains(viewport, sx, sy)) return c;
         }
         return null;
     }
