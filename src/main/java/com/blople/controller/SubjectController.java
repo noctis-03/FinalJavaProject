@@ -2,6 +2,10 @@ package com.blople.controller;
 
 import com.blople.common.EventBus;
 import com.blople.dnd.CanvasDropTarget;
+import com.blople.model.automation.AutomationRule;
+import com.blople.model.automation.ExecutionLog;
+import com.blople.model.automation.OpenBlockRef;
+import com.blople.model.block.AutomationBlock;
 import com.blople.model.block.FileBlock;
 import com.blople.model.block.LinkBlock;
 import com.blople.model.block.TextBlock;
@@ -12,10 +16,12 @@ import com.blople.model.subject.Semester;
 import com.blople.model.subject.Subject;
 import com.blople.model.subject.Timetable;
 import com.blople.service.AssignmentService;
+import com.blople.service.AutomationService;
 import com.blople.service.CanvasService;
 import com.blople.service.FileBlockService;
 import com.blople.service.SubjectService;
 import com.blople.service.TimetableService;
+import com.blople.view.canvas.AutomationBlockComponent;
 import com.blople.view.canvas.CanvasBlockComponent;
 import com.blople.view.canvas.FileBlockComponent;
 import com.blople.view.canvas.InfiniteCanvasPanel;
@@ -42,9 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 과목 페이지 컨트롤러 (FR-03 ~ FR-11).
- *
- * <p>좌측 2단 트리(과목 → 과제/파일) + 우측 무한 캔버스(텍스트/링크/파일 블록) 연동.
+ * 과목 페이지 컨트롤러 (FR-03 ~ FR-13).
  */
 public class SubjectController {
 
@@ -53,6 +57,7 @@ public class SubjectController {
     private final AssignmentService assignmentService;
     private final FileBlockService  fileBlockService;
     private final CanvasService     canvasService;
+    private final AutomationService automationService;
     private final SubjectPagePanel  view;
     private final EventBus eventBus = EventBus.getInstance();
 
@@ -66,12 +71,14 @@ public class SubjectController {
                              AssignmentService assignmentService,
                              FileBlockService fileBlockService,
                              CanvasService canvasService,
+                             AutomationService automationService,
                              SubjectPagePanel view) {
         this.subjectService = subjectService;
         this.timetableService = timetableService;
         this.assignmentService = assignmentService;
         this.fileBlockService = fileBlockService;
         this.canvasService = canvasService;
+        this.automationService = automationService;
         this.view = view;
     }
 
@@ -91,7 +98,6 @@ public class SubjectController {
         view.setOnOpenFile(this::onOpenFile);
         view.setOnDeleteFile(this::onDeleteFile);
 
-        // 캔버스 콜백
         InfiniteCanvasPanel canvas = view.getCanvasPanel();
         canvas.setOnCreateRequest(this::onCanvasCreateText);
         canvas.setOnEditRequest(this::onCanvasDoubleClickBlock);
@@ -99,8 +105,8 @@ public class SubjectController {
         canvas.setOnDeleteRequest(this::onCanvasDeleteBlock);
         canvas.setOnEmptyContextMenu(this::showEmptyContextMenu);
         canvas.setOnBlockContextMenu(this::showBlockContextMenu);
+        canvas.setOnBlockDroppedOnBlock(this::onBlockDroppedOnBlock);
 
-        // 팔레트/파일 → 캔버스 드롭 (FR-11)
         canvasDropTarget = new CanvasDropTarget(canvas);
         canvasDropTarget.setOnDrop(this::onCanvasDropped);
 
@@ -138,6 +144,11 @@ public class SubjectController {
         for (CanvasService.Placed<FileBlock> p : canvasService.loadFileBlocks(subject.getId())) {
             CanvasState st = p.state();
             comps.add(new FileBlockComponent(p.block(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+        }
+        for (AutomationService.Placed p : automationService.loadAutomationBlocks(subject.getId())) {
+            CanvasState st = p.state();
+            comps.add(new AutomationBlockComponent(p.block(), p.rule(),
                     st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
         }
 
@@ -253,7 +264,6 @@ public class SubjectController {
         }
     }
 
-    /** 트리에서 파일 블록 자체 삭제 — 캔버스 배치도 함께 사라짐(canvas_state CASCADE). */
     private void onDeleteFile(String blockId) {
         Window owner = SwingUtilities.getWindowAncestor(view);
         int ok = JOptionPane.showConfirmDialog(owner,
@@ -262,17 +272,15 @@ public class SubjectController {
         if (ok != JOptionPane.YES_OPTION) return;
         fileBlockService.delete(blockId);
         refreshExpanded();
-        // 캔버스에 떠 있던 동일 블록 컴포넌트가 있으면 다시 로드해 정리
         if (selectedSubject != null) loadCanvas(selectedSubject);
     }
 
-    // ===== 캔버스 생성 (FR-06, FR-07, FR-08, FR-11) =====
+    // ===== 캔버스 생성 =====
     private void onCanvasCreateText(Point2D world) {
         if (selectedSubject == null) return;
         createTextAt(world.getX(), world.getY());
     }
 
-    /** 팔레트(메모/링크) 또는 트리 파일 블록이 캔버스에 드롭됨. */
     private void onCanvasDropped(BlockType type, String blockId, Point2D world) {
         if (selectedSubject == null) {
             JOptionPane.showMessageDialog(
@@ -281,12 +289,64 @@ public class SubjectController {
                     "안내", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        switch (type) {
-            case TEXT -> createTextAt(world.getX(), world.getY());
-            case LINK -> createLinkAt(world.getX(), world.getY());
-            case FILE -> placeFileAt(blockId, world.getX(), world.getY());
-            default -> { /* 미지원 종류 무시 */ }
+
+        if (type == BlockType.FILE || type == BlockType.LINK) {
+            AutomationBlockComponent autoComp = automationBlockAtWorld(world);
+            if (autoComp != null) {
+                connectToAutomation(autoComp, blockId, type);
+                return;
+            }
         }
+
+        switch (type) {
+            case TEXT       -> createTextAt(world.getX(), world.getY());
+            case LINK       -> createLinkAt(world.getX(), world.getY());
+            case FILE       -> placeFileAt(blockId, world.getX(), world.getY());
+            case AUTOMATION -> createAutomationAt(world.getX(), world.getY());
+            default         -> { }
+        }
+    }
+
+    private AutomationBlockComponent automationBlockAtWorld(Point2D world) {
+        InfiniteCanvasPanel canvas = view.getCanvasPanel();
+        Point sp = canvas.getViewport().worldToScreen(world.getX(), world.getY());
+        CanvasBlockComponent hit = canvas.blockAt(sp.x, sp.y);
+        return (hit instanceof AutomationBlockComponent ac) ? ac : null;
+    }
+
+    // ===== 캔버스 내부 블록을 다른 블록 위에 놓음 (연결 보완) =====
+    private void onBlockDroppedOnBlock(CanvasBlockComponent dragged,
+                                       CanvasBlockComponent target,
+                                       double originWorldX, double originWorldY) {
+        // 파일/링크를 자동화 블록 위에 놓으면 연결
+        boolean draggedIsConnectable =
+                (dragged instanceof FileBlockComponent) || (dragged instanceof LinkBlockComponent);
+        if (draggedIsConnectable && target instanceof AutomationBlockComponent autoComp) {
+            BlockType type = (dragged instanceof FileBlockComponent)
+                    ? BlockType.FILE : BlockType.LINK;
+            connectToAutomation(autoComp, dragged.getBlockId(), type);
+
+            // 끌린 블록은 원래 위치로 복귀 (실행 블록 위에 가려지지 않게)
+            dragged.setWorldPos(originWorldX, originWorldY);
+            view.getCanvasPanel().repaint();
+            return;
+        }
+
+        // 연결 대상이 아니면 일반 이동으로 처리 (놓은 자리에 격자 스냅하여 저장)
+        Point2D snapped = view.getCanvasPanel().getGridRenderer()
+                .snap(dragged.getWorldX(), dragged.getWorldY());
+        dragged.setWorldPos(snapped.getX(), snapped.getY());
+        onCanvasBlockMoved(dragged);
+        view.getCanvasPanel().repaint();
+    }
+
+    private void connectToAutomation(AutomationBlockComponent autoComp, String targetBlockId, BlockType type) {
+        automationService.connectBlock(autoComp.getRuleId(), targetBlockId, type)
+                .ifPresent(ref -> {
+                    automationService.getRule(autoComp.getRuleId())
+                            .ifPresent(autoComp::setRule);
+                    view.getCanvasPanel().repaint();
+                });
     }
 
     private void createTextAt(double x, double y) {
@@ -315,15 +375,11 @@ public class SubjectController {
         dialog.setVisible(true);
     }
 
-    /** 트리의 기존 파일 블록을 캔버스에 배치 (FR-05 + FR-08). */
     private void placeFileAt(String fileBlockId, double x, double y) {
-        // 이미 캔버스에 떠 있으면 위치만 갱신 (중복 컴포넌트 방지)
         boolean already = canvasService.isFilePlaced(fileBlockId);
-
         canvasService.placeFileBlock(selectedSubject.getId(), fileBlockId, x, y)
                 .ifPresent(placed -> {
                     if (already) {
-                        // 이미 화면에 있던 컴포넌트는 다시 로드해 새 위치로 반영
                         loadCanvas(selectedSubject);
                     } else {
                         CanvasState st = placed.state();
@@ -334,10 +390,20 @@ public class SubjectController {
                 });
     }
 
-    // ===== 캔버스 더블클릭: 메모/링크는 편집, 파일은 열기 =====
+    private void createAutomationAt(double x, double y) {
+        AutomationService.Placed placed =
+                automationService.createAutomationBlock(selectedSubject.getId(), x, y);
+        CanvasState st = placed.state();
+        view.getCanvasPanel().addBlock(new AutomationBlockComponent(
+                placed.block(), placed.rule(), st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+    }
+
+    // ===== 더블클릭: 메모/링크=편집, 파일=열기, 자동화=실행 =====
     private void onCanvasDoubleClickBlock(CanvasBlockComponent comp) {
         if (comp instanceof FileBlockComponent fc) {
             openFileFromCanvas(fc);
+        } else if (comp instanceof AutomationBlockComponent ac) {
+            executeAutomation(ac);
         } else {
             onCanvasEditBlock(comp);
         }
@@ -353,7 +419,16 @@ public class SubjectController {
         }
     }
 
-    // ===== 캔버스 편집 (메모/링크) =====
+    private void executeAutomation(AutomationBlockComponent ac) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        ExecutionLog log = automationService.execute(ac.getRuleId());
+        if (!log.isSuccess()) {
+            JOptionPane.showMessageDialog(owner, log.getResultMessage(),
+                    "자동화 실행 결과", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    // ===== 편집 (메모/링크) =====
     private void onCanvasEditBlock(CanvasBlockComponent comp) {
         Window owner = SwingUtilities.getWindowAncestor(view);
 
@@ -390,7 +465,7 @@ public class SubjectController {
         }
     }
 
-    // ===== 캔버스 이동/리사이즈 저장 =====
+    // ===== 이동/리사이즈 저장 =====
     private void onCanvasBlockMoved(CanvasBlockComponent comp) {
         if (selectedSubject == null) return;
         canvasService.findStateByBlock(comp.getBlockId()).ifPresentOrElse(
@@ -410,18 +485,24 @@ public class SubjectController {
                 });
     }
 
-    // ===== 캔버스 삭제 (Delete 키 / 메뉴) =====
+    // ===== 삭제 =====
     private void onCanvasDeleteBlock(CanvasBlockComponent comp) {
         Window owner = SwingUtilities.getWindowAncestor(view);
 
-        // 파일 블록은 "캔버스에서만 치우기"(트리엔 남김)
-        boolean isFile = comp instanceof FileBlockComponent;
-        String message = isFile
-                ? "이 파일 블록을 캔버스에서 치울까요?\n(파일 목록과 원본 파일은 그대로 유지됩니다)"
-                : "이 블록을 삭제할까요?";
+        String message;
+        String title;
+        if (comp instanceof FileBlockComponent) {
+            message = "이 파일 블록을 캔버스에서 치울까요?\n(파일 목록과 원본 파일은 그대로 유지됩니다)";
+            title = "캔버스에서 치우기";
+        } else if (comp instanceof AutomationBlockComponent) {
+            message = "이 실행 블록을 삭제할까요?\n(연결 목록도 함께 삭제됩니다)";
+            title = "실행 블록 삭제";
+        } else {
+            message = "이 블록을 삭제할까요?";
+            title = "블록 삭제";
+        }
 
-        int ok = JOptionPane.showConfirmDialog(owner, message,
-                isFile ? "캔버스에서 치우기" : "블록 삭제",
+        int ok = JOptionPane.showConfirmDialog(owner, message, title,
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (ok != JOptionPane.YES_OPTION) return;
 
@@ -430,12 +511,14 @@ public class SubjectController {
         } else if (comp instanceof LinkBlockComponent) {
             canvasService.deleteLinkBlock(comp.getBlockId());
         } else if (comp instanceof FileBlockComponent) {
-            canvasService.removeFilePlacement(comp.getBlockId());  // 배치만 제거
+            canvasService.removeFilePlacement(comp.getBlockId());
+        } else if (comp instanceof AutomationBlockComponent) {
+            automationService.deleteAutomationBlock(comp.getBlockId());
         }
         view.getCanvasPanel().removeBlock(comp);
     }
 
-    // ===== 캔버스 우클릭 메뉴 =====
+    // ===== 우클릭 메뉴 =====
     private void showEmptyContextMenu(Point screen, Point2D world) {
         if (selectedSubject == null) {
             JOptionPane.showMessageDialog(
@@ -448,12 +531,14 @@ public class SubjectController {
 
         JMenuItem addText = new JMenuItem("📝 메모 추가");
         addText.addActionListener(e -> createTextAt(world.getX(), world.getY()));
-
         JMenuItem addLink = new JMenuItem("🔗 링크 추가");
         addLink.addActionListener(e -> createLinkAt(world.getX(), world.getY()));
+        JMenuItem addAuto = new JMenuItem("⚡ 실행 블록 추가");
+        addAuto.addActionListener(e -> createAutomationAt(world.getX(), world.getY()));
 
         menu.add(addText);
         menu.add(addLink);
+        menu.add(addAuto);
         menu.show(view.getCanvasPanel(), screen.x, screen.y);
     }
 
@@ -465,32 +550,67 @@ public class SubjectController {
             open.addActionListener(e -> openFileFromCanvas(fc));
             open.setEnabled(fc.getModel().isFileValid());
             menu.add(open);
-
             menu.addSeparator();
-
             JMenuItem remove = new JMenuItem("캔버스에서 치우기");
             remove.addActionListener(e -> onCanvasDeleteBlock(comp));
             menu.add(remove);
+
+        } else if (comp instanceof AutomationBlockComponent ac) {
+            JMenuItem run = new JMenuItem("⚡ 실행 (한 번에 열기)");
+            run.addActionListener(e -> executeAutomation(ac));
+            menu.add(run);
+            JMenuItem manage = new JMenuItem("연결 목록 보기/제거");
+            manage.addActionListener(e -> showAutomationConnections(ac));
+            menu.add(manage);
+            menu.addSeparator();
+            JMenuItem delete = new JMenuItem("실행 블록 삭제");
+            delete.addActionListener(e -> onCanvasDeleteBlock(comp));
+            menu.add(delete);
 
         } else {
             JMenuItem edit = new JMenuItem("편집");
             edit.addActionListener(e -> onCanvasEditBlock(comp));
             menu.add(edit);
-
             if (comp instanceof LinkBlockComponent lc) {
                 JMenuItem openLink = new JMenuItem("🔗 브라우저에서 열기");
                 openLink.addActionListener(e -> openLinkInBrowser(lc));
                 menu.add(openLink);
             }
-
             menu.addSeparator();
-
             JMenuItem delete = new JMenuItem("삭제");
             delete.addActionListener(e -> onCanvasDeleteBlock(comp));
             menu.add(delete);
         }
 
         menu.show(view.getCanvasPanel(), screen.x, screen.y);
+    }
+
+    private void showAutomationConnections(AutomationBlockComponent ac) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        AutomationRule rule = automationService.getRule(ac.getRuleId()).orElse(null);
+        if (rule == null || rule.getOpenBlocks().isEmpty()) {
+            JOptionPane.showMessageDialog(owner,
+                    "연결된 블록이 없습니다.\n파일/링크를 실행 블록 위로 끌어다 넣으세요.",
+                    "연결 목록", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        List<OpenBlockRef> refs = rule.getOpenBlocks();
+        String[] labels = refs.stream()
+                .map(r -> (r.getBlockType() == BlockType.LINK ? "🔗 " : "📄 ") + r.getDisplayName())
+                .toArray(String[]::new);
+
+        String chosen = (String) JOptionPane.showInputDialog(owner,
+                "제거할 블록을 선택하세요:", "연결 목록 관리",
+                JOptionPane.PLAIN_MESSAGE, null, labels, labels[0]);
+        if (chosen == null) return;
+
+        int idx = java.util.Arrays.asList(labels).indexOf(chosen);
+        if (idx < 0) return;
+        OpenBlockRef target = refs.get(idx);
+
+        automationService.disconnectBlock(ac.getRuleId(), target.getBlockId());
+        automationService.getRule(ac.getRuleId()).ifPresent(ac::setRule);
+        view.getCanvasPanel().repaint();
     }
 
     private void openLinkInBrowser(LinkBlockComponent lc) {
