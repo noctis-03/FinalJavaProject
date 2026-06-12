@@ -5,6 +5,7 @@ import com.blople.model.block.FileBlock;
 import com.blople.model.enums.AssignmentStatus;
 import com.blople.model.subject.Subject;
 import com.blople.view.canvas.InfiniteCanvasPanel;
+import com.blople.view.canvas.SubjectCanvasHeaderPanel;
 
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
@@ -15,19 +16,25 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * 과목 페이지 전체 레이아웃 (FR-03, FR-08).
+ * 과목 페이지 전체 레이아웃 (FR-03, FR-07, FR-08).
  *
- * <p>좌측 {@link SubjectTreePanel}(2단 아코디언: 과목 → 과제/파일)
- * + 우측 {@link InfiniteCanvasPanel}(항상 표시되는 무한 캔버스).
+ * <p>좌측 {@link SubjectTreePanel}(2단 아코디언)
+ * + 우측 [헤더(과목 표시 + 팔레트) + {@link InfiniteCanvasPanel}].
  */
 public class SubjectPagePanel extends JPanel {
 
-    private final SubjectTreePanel    treePanel   = new SubjectTreePanel();
-    private final InfiniteCanvasPanel canvasPanel = new InfiniteCanvasPanel();
+    private final SubjectTreePanel         treePanel   = new SubjectTreePanel();
+    private final SubjectCanvasHeaderPanel headerPanel = new SubjectCanvasHeaderPanel();
+    private final InfiniteCanvasPanel      canvasPanel = new InfiniteCanvasPanel();
 
     public SubjectPagePanel() {
         setLayout(new BorderLayout());
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treePanel, canvasPanel);
+
+        JPanel rightArea = new JPanel(new BorderLayout());
+        rightArea.add(headerPanel, BorderLayout.NORTH);
+        rightArea.add(canvasPanel, BorderLayout.CENTER);
+
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treePanel, rightArea);
         split.setDividerLocation(300);
         split.setDividerSize(1);
         add(split, BorderLayout.CENTER);
@@ -40,12 +47,14 @@ public class SubjectPagePanel extends JPanel {
         treePanel.setSuppliers(assignmentSupplier, fileSupplier);
     }
 
-    /** 현재 펼쳐진 과목의 과제/파일 섹션 갱신. */
     public void reloadExpandedSubject(Subject subject) {
         treePanel.reloadExpandedSubject(subject);
     }
 
-    public InfiniteCanvasPanel getCanvasPanel() { return canvasPanel; }
+    public InfiniteCanvasPanel      getCanvasPanel() { return canvasPanel; }
+    public SubjectCanvasHeaderPanel getHeaderPanel() { return headerPanel; }
+
+    public void showSubjectInHeader(Subject subject) { headerPanel.showSubject(subject); }
 
     // 콜백 위임
     public void setOnTimetableClick(Runnable cb)                          { treePanel.setOnTimetableClick(cb); }
