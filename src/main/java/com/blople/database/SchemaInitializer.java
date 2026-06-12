@@ -253,6 +253,18 @@ public class SchemaInitializer {
             )
             """);
 
+        // 캔버스 위 자동화(실행) 블록 (FR-12, FR-13)
+        ddls.add("""
+            CREATE TABLE IF NOT EXISTS automation_block (
+                block_id    TEXT PRIMARY KEY,
+                subject_id  TEXT,
+                rule_id     TEXT NOT NULL,
+                FOREIGN KEY (block_id)   REFERENCES block(id)            ON DELETE CASCADE,
+                FOREIGN KEY (subject_id) REFERENCES subject(id)          ON DELETE CASCADE,
+                FOREIGN KEY (rule_id)    REFERENCES automation_rule(id)  ON DELETE CASCADE
+            )
+            """);
+
         ddls.add("""
             CREATE TABLE IF NOT EXISTS automation_command (
                 id            TEXT PRIMARY KEY,
@@ -340,6 +352,8 @@ public class SchemaInitializer {
         ddls.add("CREATE INDEX IF NOT EXISTS idx_file_subject        ON file_block(subject_id)");
         ddls.add("CREATE INDEX IF NOT EXISTS idx_canvas_subject      ON canvas_state(subject_id)");
         ddls.add("CREATE INDEX IF NOT EXISTS idx_block_type          ON block(block_type)");
+        ddls.add("CREATE INDEX IF NOT EXISTS idx_automation_block_subject ON automation_block(subject_id)");
+        ddls.add("CREATE INDEX IF NOT EXISTS idx_slot_open_blocks_slot    ON slot_open_blocks(slot_id)");
 
         return ddls;
     }
