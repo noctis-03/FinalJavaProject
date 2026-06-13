@@ -13,6 +13,7 @@ import com.blople.service.CalendarService;
 import com.blople.service.PresetBlockService;
 import com.blople.view.calendar.CalendarPagePanel;
 import com.blople.view.calendar.PresetBlockCreateDialog;
+import com.blople.view.calendar.ScheduleBlockEditDialog;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -23,9 +24,6 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/**
- * 캘린더 페이지 컨트롤러 (FR-01, FR-02, FR-11, FR-12).
- */
 public class CalendarController {
 
     private static final DateTimeFormatter MONTH_LABEL = DateTimeFormatter.ofPattern("yyyy년 M월");
@@ -51,7 +49,6 @@ public class CalendarController {
         this.model = service.getCalendarModel();
     }
 
-    /** MainFrame 조립 후 1회 호출 — 콜백 연결 + 드롭 타겟 등록 + 초기 렌더 + 이벤트 구독. */
     public void initialize() {
         wireCallbacks();
         subscribeEvents();
@@ -68,13 +65,16 @@ public class CalendarController {
         view.setOnToday(this::onToday);
         view.setOnViewToggle(this::onViewToggle);
         view.setOnBlockClick(this::onBlockClick);
+        view.setOnBlockDoubleClick(this::onBlockEdit);
+        view.setOnBlockDelete(this::onBlockDeleteByObject);
+        view.setOnBlockMove(this::onBlockMoveByDrag);
+        view.setOnEmptySlotDoubleClick(this::onEmptySlotDoubleClick);
         view.setOnDateClick(this::onDateClick);
 
         view.setOnPresetCreate(this::onPresetCreate);
         view.setOnPresetPlace(this::onPresetPlace);
         view.setOnPresetDelete(this::onPresetDelete);
 
-        // 자동화 (FR-12)
         view.setOnAutomationAdd(this::onAutomationAdd);
         view.setOnAutomationRuleChange(this::onAutomationRuleChange);
         view.setOnAutomationRun(this::onAutomationRun);
@@ -86,6 +86,7 @@ public class CalendarController {
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_UPDATED, p -> refreshOnEdt());
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_MOVED,   p -> refreshOnEdt());
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_DELETED, p -> refreshOnEdt());
+        eventBus.subscribe(EventBus.SUBJECT_CHANGED,        p -> refreshOnEdt());
     }
 
     private void registerDropTarget() {
@@ -93,7 +94,6 @@ public class CalendarController {
         calendarDropTarget.setOnDrop(this::onPresetDropped);
     }
 
-    // ===== 네비게이션 / 뷰 =====
     private void onNavigatePrev() {
         service.navigatePrev();
         syncViewState();
@@ -121,9 +121,77 @@ public class CalendarController {
     }
 
     private void onBlockClick(ScheduleBlock block) {
-        String msg = "일정: %s\n%s ~ %s".formatted(
-                block.getName(), block.getStartDatetime(), block.getEndDatetime());
-        JOptionPane.showMessageDialog(view, msg, "일정 상세", JOptionPane.INFORMATION_MESSAGE);
+        // 단일 클릭은 선택만(상세 표시는 더블클릭). 안내 토스트 대신 무동작.
+    }
+
+    private void onBlockEdit(ScheduleBlock block) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        ScheduleBlockEditDialog dialog = new ScheduleBlockEditDialog(owner, block);
+        dialog.setOnSave(form -> {
+            try {
+                ScheduleBlock updated = service.findById(block.getId()).orElseThrow();
+                updated.setName(form.name());
+                updated.setColor(form.colorHex());
+                updated.setStartDatetime(form.startDatetime());
+                updated.setEndDatetime(form.endDatetime());
+                service.updateBlock(updated);
+            } catch (CalendarService.ScheduleConflictException ex) {
+                JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                        "시간 충돌", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                        "수정 실패", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+        dialog.setOnDelete(() -> service.removeBlock(block.getId()));
+        dialog.setVisible(true);
+    }
+
+    private void onBlockDeleteByObject(ScheduleBlock block) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        int ok = JOptionPane.showConfirmDialog(owner,
+                "이 일정을 삭제할까요?\n" + block.getName(),
+                "일정 삭제", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (ok != JOptionPane.YES_OPTION) return;
+        service.removeBlock(block.getId());
+    }
+
+    private void onBlockMoveByDrag(String blockId, LocalDateTime newStart, LocalDateTime newEnd) {
+        try {
+            service.moveBlock(blockId,
+                    newStart.format(TS_FMT_LOCAL),
+                    newEnd.format(TS_FMT_LOCAL));
+        } catch (CalendarService.ScheduleConflictException ex) {
+            JOptionPane.showMessageDialog(view, ex.getMessage(),
+                    "시간 충돌", JOptionPane.WARNING_MESSAGE);
+            refreshOnEdt(); // 원래 위치로 되돌리기
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(view, ex.getMessage(),
+                    "이동 실패", JOptionPane.WARNING_MESSAGE);
+            refreshOnEdt();
+        }
+    }
+
+    private void onEmptySlotDoubleClick(LocalDateTime when) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        // 기본 1시간짜리 빈 일정으로 편집창 열기
+        ScheduleBlock draft = new ScheduleBlock("새 일정", "#4D96FF",
+                when.format(TS_FMT_LOCAL), when.plusHours(1).format(TS_FMT_LOCAL));
+        ScheduleBlockEditDialog dialog = new ScheduleBlockEditDialog(owner, draft);
+        dialog.setOnSave(form -> {
+            try {
+                ScheduleBlock nb = new ScheduleBlock(form.name(), form.colorHex(),
+                        form.startDatetime(), form.endDatetime());
+                service.addScheduleBlock(nb);
+            } catch (CalendarService.ScheduleConflictException ex) {
+                JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                        "시간 충돌", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(owner, ex.getMessage(),
+                        "생성 실패", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+        dialog.setVisible(true);
     }
 
     private void onDateClick(LocalDate date) {
@@ -133,7 +201,6 @@ public class CalendarController {
         refreshView();
     }
 
-    // ===== 미리블록 (FR-02) =====
     private void reloadPresets() {
         List<PresetBlock> presets = presetService.getAll();
         view.setPresets(presets);
@@ -147,7 +214,7 @@ public class CalendarController {
                 presetService.create(form.name(), form.colorHex(),
                         form.durationMinutes(), form.category());
                 reloadPresets();
-                reloadAutomations(); // 미리블록이 생기면 자동화 콤보도 갱신
+                reloadAutomations();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(owner, ex.getMessage(),
                         "생성 실패", JOptionPane.WARNING_MESSAGE);
@@ -161,6 +228,9 @@ public class CalendarController {
         String start = date.atTime(9, 0).format(TS_FMT_LOCAL);
         try {
             presetService.placeOnCalendar(preset.getId(), start);
+        } catch (CalendarService.ScheduleConflictException ex) {
+            JOptionPane.showMessageDialog(view, ex.getMessage(),
+                    "시간 충돌", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(view, ex.getMessage(),
                     "배치 실패", JOptionPane.WARNING_MESSAGE);
@@ -177,11 +247,14 @@ public class CalendarController {
         reloadAutomations();
     }
 
-    // ===== 드래그앤드롭 배치 (FR-11) =====
     private void onPresetDropped(String presetBlockId, LocalDateTime when) {
         try {
             String start = when.format(TS_FMT_LOCAL);
             presetService.placeOnCalendar(presetBlockId, start);
+        } catch (CalendarService.ScheduleConflictException ex) {
+            SwingUtilities.invokeLater(() ->
+                    JOptionPane.showMessageDialog(view, ex.getMessage(),
+                            "시간 충돌", JOptionPane.WARNING_MESSAGE));
         } catch (Exception ex) {
             SwingUtilities.invokeLater(() ->
                     JOptionPane.showMessageDialog(view, ex.getMessage(),
@@ -189,7 +262,6 @@ public class CalendarController {
         }
     }
 
-    // ===== 자동화 (FR-12) =====
     private void reloadAutomations() {
         List<CalendarAutomationRule> rules = automationService.getAllRules();
         view.setAutomationRules(rules);
@@ -200,7 +272,6 @@ public class CalendarController {
         reloadAutomations();
     }
 
-    /** 콤보(요일/미리블록) 변경 시 즉시 저장. */
     private void onAutomationRuleChange(CalendarAutomationRule rule) {
         automationService.updateRule(rule);
     }
@@ -212,7 +283,6 @@ public class CalendarController {
                 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE;
         JOptionPane.showMessageDialog(owner, log.getResultMessage(),
                 log.isSuccess() ? "자동화 실행 완료" : "자동화 실행 실패", type);
-        // 성공 시 등록된 일정은 SCHEDULE_BLOCK_CREATED 이벤트로 캘린더 자동 갱신됨
     }
 
     private void onAutomationDelete(CalendarAutomationRule rule) {
@@ -225,7 +295,6 @@ public class CalendarController {
         reloadAutomations();
     }
 
-    // ===== View 상태 동기화 =====
     private void syncViewState() {
         ViewMode mode = model.getCurrentViewMode();
         LocalDate cur = model.getCurrentDate();
@@ -251,7 +320,6 @@ public class CalendarController {
                 we.getMonthValue(), we.getDayOfMonth());
     }
 
-    // ===== 렌더 =====
     public void refreshView() {
         List<ScheduleBlock> blocks = model.getScheduleBlocks();
         view.refresh(blocks);
