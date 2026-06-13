@@ -18,17 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * 시간표 서비스.
- *
- * <p>핵심 책임:
- * <ul>
- *   <li>timetable_entry CRUD</li>
- *   <li>시간표 항목이 추가/수정/삭제될 때 캘린더의 반복 일정 블록을
- *       해당 학기 전체 기간에 걸쳐 일괄 생성/재생성/삭제</li>
- *   <li>같은 요일·시간대 충돌 감지</li>
- * </ul>
- */
 public class TimetableService {
 
     public static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -48,9 +37,6 @@ public class TimetableService {
         this.subjectService   = subjectService;
     }
 
-    // ============================================================
-    //  조회
-    // ============================================================
     public List<Timetable> getBySubject(String subjectId) {
         return timetableDAO.findBySubject(subjectId);
     }
@@ -59,7 +45,6 @@ public class TimetableService {
         return timetableDAO.findBySemester(semesterId);
     }
 
-    /** 같은 학기 내 모든 시간표 항목과 충돌하는지 검사. */
     public List<Timetable> detectConflicts(Timetable candidate, String semesterId) {
         List<Timetable> conflicts = new ArrayList<>();
         for (Timetable t : getBySemester(semesterId)) {
@@ -68,9 +53,6 @@ public class TimetableService {
         return conflicts;
     }
 
-    // ============================================================
-    //  CRUD
-    // ============================================================
     public Timetable addEntry(String subjectId, int dayOfWeek,
                               String startTime, String endTime) {
         validateRange(startTime, endTime);
@@ -86,7 +68,6 @@ public class TimetableService {
     public void updateEntry(Timetable entry) {
         validateRange(entry.getStartTime(), entry.getEndTime());
         timetableDAO.update(entry);
-
         regenerateRecurringBlocksForSubject(entry.getSubjectId());
         eventBus.publish(EventBus.SUBJECT_CHANGED, "timetable-changed");
     }
@@ -95,27 +76,16 @@ public class TimetableService {
         Optional<Timetable> opt = timetableDAO.findById(entryId);
         if (opt.isEmpty()) return;
         String subjectId = opt.get().getSubjectId();
-
         timetableDAO.delete(entryId);
         regenerateRecurringBlocksForSubject(subjectId);
         eventBus.publish(EventBus.SUBJECT_CHANGED, "timetable-changed");
     }
 
-    // ============================================================
-    //  캘린더 반복 블록 생성 (핵심)
-    // ============================================================
-
     /**
      * 한 과목의 모든 시간표 항목 → 캘린더 반복 일정 블록 재생성.
-     *
-     * <p>절차:
-     * <ol>
-     *   <li>해당 과목의 기존 schedule_block (subject_id 일치 + is_recurring = 1) 모두 삭제</li>
-     *   <li>해당 학기 기간 동안 각 시간표 항목에 대해 주 1회씩 INSERT</li>
-     * </ol>
+     * 시간표는 같은 시간대가 이미 검증되어 있으므로 충돌 검사를 잠시 끄고 일괄 INSERT 한다.
      */
     public void regenerateRecurringBlocksForSubject(String subjectId) {
-        // 1) 기존 반복 블록 삭제
         List<ScheduleBlock> existing = scheduleBlockDAO.findBySubject(subjectId);
         for (ScheduleBlock b : existing) {
             if (b.isRecurring()) {
@@ -123,25 +93,23 @@ public class TimetableService {
             }
         }
 
-        // 2) 학기 기간 결정
         Optional<Subject> subjOpt = subjectService.getSubjectById(subjectId);
         if (subjOpt.isEmpty()) return;
         Subject subject = subjOpt.get();
 
         LocalDate semesterStart, semesterEnd;
-        Optional<Semester> semOpt = subjectService.getActiveSemester();
-        if (semOpt.isPresent() && semOpt.get().getId().equals(subject.getSemesterId())
-                && semOpt.get().getStartDateAsLocalDate() != null
+        Optional<Semester> semOpt = subjectService.getAllSemesters().stream()
+                .filter(s -> s.getId().equals(subject.getSemesterId()))
+                .findFirst();
+        if (semOpt.isPresent() && semOpt.get().getStartDateAsLocalDate() != null
                 && semOpt.get().getEndDateAsLocalDate() != null) {
             semesterStart = semOpt.get().getStartDateAsLocalDate();
             semesterEnd   = semOpt.get().getEndDateAsLocalDate();
         } else {
-            // fallback: 오늘부터 16주
             semesterStart = LocalDate.now();
             semesterEnd   = semesterStart.plusWeeks(16);
         }
 
-        // 3) 시간표 항목 각각에 대해 주 1회 블록 생성
         for (Timetable t : getBySubject(subjectId)) {
             generateWeeklyBlocks(subject, t, semesterStart, semesterEnd);
         }
@@ -165,14 +133,13 @@ public class TimetableService {
                     end.format(TS_FMT));
             block.setSubjectId(subject.getId());
             block.setRecurring(true);
-            block.setRecurrenceRule("FREQ=WEEKLY");  // 단순 표기용
+            block.setRecurrenceRule("FREQ=WEEKLY");
             scheduleBlockDAO.insert(block);
 
             cursor = cursor.plusWeeks(1);
         }
     }
 
-    /** 0=일 … 6=토 → java.time.DayOfWeek (MON=1 … SUN=7) */
     private DayOfWeek toJavaDow(int projDow) {
         return projDow == 0 ? DayOfWeek.SUNDAY : DayOfWeek.of(projDow);
     }
