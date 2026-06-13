@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create output directory
+        run: mkdir -p dist && chmod -R 777 dist
+
       - name: Convert Marp slides to HTML
         run: |
           docker run --rm -v $PWD:/home/marp/app marpteam/marp-cli \
