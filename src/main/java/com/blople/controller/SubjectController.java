@@ -44,18 +44,18 @@ import java.awt.Window;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 과목 페이지 컨트롤러 (FR-03 ~ FR-13).
  *
- * <p>자동화(실행) 블록은 노드 그래프 방식으로 동작한다.
+ * <p>v0.7+ 추가:
  * <ul>
- *   <li>실행 블록의 포트(●)를 드래그해 파일/링크 블록 위에 놓으면 연결</li>
- *   <li>실행 블록의 "▶ 실행" 버튼 클릭 시 연결된 블록을 한 번에 연다</li>
- *   <li>연결선(엣지) 우클릭 → 해당 연결만 해제</li>
- *   <li>실행 블록 본체 더블클릭 → 연결 목록 보기/제거</li>
+ *   <li>시간표 입력 다이얼로그에서 학기(연도/1·2학기) 선택 (요구 #2)</li>
+ *   <li>시간표 항목 수정 / 삭제 — 마지막 항목이면 과목까지 삭제 옵션 (요구 #7)</li>
+ *   <li>시간표 단계 충돌 시 추가 거부 (요구 #8)</li>
  * </ul>
  */
 public class SubjectController {
@@ -181,38 +181,110 @@ public class SubjectController {
         if (selectedSubject != null) view.reloadExpandedSubject(selectedSubject);
     }
 
-    // ===== 시간표 =====
+    // ============================================================
+    //  시간표 입력 다이얼로그 (요구 #2, #7, #8)
+    // ============================================================
     private void openTimetableDialog() {
         Window owner = SwingUtilities.getWindowAncestor(view);
         TimetableInputDialog dialog = new TimetableInputDialog(owner);
-        List<Timetable> existing = timetableService.getBySemester(activeSemester.getId());
-        dialog.loadExisting(existing, id -> subjectService.getSubjectById(id).orElse(null));
+
+        // 현재 활성 학기 정보로 학기 셀렉터 초기화
+        int curYear;
+        Semester.Term curTerm;
+        if (activeSemester != null) {
+            curTerm = activeSemester.detectTerm();
+            curYear = activeSemester.getStartDateAsLocalDate() != null
+                    ? activeSemester.getStartDateAsLocalDate().getYear()
+                    : LocalDate.now().getYear();
+        } else {
+            LocalDate today = LocalDate.now();
+            curYear = today.getYear();
+            curTerm = (today.getMonthValue() <= 7) ? Semester.Term.FIRST : Semester.Term.SECOND;
+        }
+        dialog.setSemesterSelection(curYear, curTerm);
+
+        // 학기 변경 → 해당 학기 보장/활성화하고 목록 다시 로드
+        dialog.setOnSemesterChange((year, term) -> {
+            activeSemester = subjectService.ensureSemester(year, term, true);
+            reloadDialogList(dialog);
+            reloadSubjects();
+            // 학기가 바뀌면 캔버스 헤더의 과목 표시도 초기화
+            selectedSubject = null;
+            view.showSubjectInHeader(null);
+            view.getCanvasPanel().setBlocks(new ArrayList<>());
+        });
+
+        // 추가
         dialog.setOnAdd(form -> handleTimetableAdd(dialog, form));
+
+        // 수정
+        dialog.setOnEntryEdit((entryId, subjectId, name, prof, room, color, dow, st, et) -> {
+            handleTimetableEdit(dialog, entryId, subjectId, name, prof, room, color, dow, st, et);
+        });
+
+        // 삭제
+        dialog.setOnEntryDelete((entryId, subjectId, alsoDeleteSubject) -> {
+            try {
+                timetableService.deleteEntry(entryId);
+                if (alsoDeleteSubject) {
+                    if (selectedSubject != null && selectedSubject.getId().equals(subjectId)) {
+                        selectedSubject = null;
+                        view.showSubjectInHeader(null);
+                        view.getCanvasPanel().setBlocks(new ArrayList<>());
+                    }
+                    subjectService.deleteSubject(subjectId);
+                }
+                reloadSubjects();
+                return true;
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, ex.getMessage(),
+                        "삭제 실패", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+        });
+
+        reloadDialogList(dialog);
         dialog.setVisible(true);
+    }
+
+    private void reloadDialogList(TimetableInputDialog dialog) {
+        if (activeSemester == null) {
+            dialog.setEntries(new ArrayList<>(), id -> null);
+            return;
+        }
+        List<Timetable> entries = timetableService.getBySemester(activeSemester.getId());
+        dialog.setEntries(entries, id -> subjectService.getSubjectById(id).orElse(null));
     }
 
     private void handleTimetableAdd(TimetableInputDialog dialog,
                                     TimetableInputDialog.TimetableForm form) {
         try {
+            // 1) 시간표 충돌 사전 검사 — 다른 어떤 과목과도 같은 요일·시간대가 겹치면 추가 거부 (요구 #8)
+            Timetable candidate = new Timetable(
+                    "dummy", form.dayOfWeek(), form.startTime(), form.endTime());
+            // hasConflictWith 는 같은 id 가 아닐 때만 충돌로 보므로 임시 id 그대로 사용
+            List<Timetable> conflicts =
+                    timetableService.detectConflicts(candidate, activeSemester.getId());
+            if (!conflicts.isEmpty()) {
+                Timetable c = conflicts.get(0);
+                String name = subjectService.getSubjectById(c.getSubjectId())
+                        .map(Subject::getName).orElse("(알 수 없음)");
+                JOptionPane.showMessageDialog(dialog,
+                        "같은 요일·시간대에 이미 일정이 있어 추가할 수 없습니다.\n"
+                                + "충돌 대상: " + name + " (" + c.getStartTime() + "~" + c.getEndTime() + ")",
+                        "시간 충돌", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // 2) 과목 생성(중복 이름이면 기존 과목 그대로 사용) + 시간표 항목 추가
             Subject subject = subjectService.createSubject(
                     activeSemester.getId(), form.subjectName(),
                     form.professor(), form.classroom(), form.colorHex());
 
-            Timetable candidate = new Timetable(
-                    subject.getId(), form.dayOfWeek(), form.startTime(), form.endTime());
-            List<Timetable> conflicts =
-                    timetableService.detectConflicts(candidate, activeSemester.getId());
-            if (!conflicts.isEmpty()) {
-                int ok = JOptionPane.showConfirmDialog(dialog,
-                        "같은 시간대에 이미 일정이 있습니다. 그래도 추가할까요?",
-                        "시간표 충돌", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-                if (ok != JOptionPane.YES_OPTION) return;
-            }
-
             timetableService.addEntry(subject.getId(),
                     form.dayOfWeek(), form.startTime(), form.endTime());
-            dialog.appendEntryLine(TimetableInputDialog.formatLine(
-                    subject.getName(), form.dayOfWeek(), form.startTime(), form.endTime()));
+
+            reloadDialogList(dialog);
             reloadSubjects();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(dialog, "추가 실패: " + ex.getMessage(),
@@ -220,7 +292,58 @@ public class SubjectController {
         }
     }
 
-    // ===== 과제 =====
+    private void handleTimetableEdit(TimetableInputDialog dialog,
+                                     String entryId, String subjectId,
+                                     String name, String prof, String room, String color,
+                                     int dow, String st, String et) {
+        try {
+            // 1) 충돌 사전 검사 — 자기 자신은 제외하고 검사 (요구 #8)
+            Timetable candidate = Timetable.reconstruct(entryId, subjectId, dow, st, et);
+            List<Timetable> conflicts =
+                    timetableService.detectConflicts(candidate, activeSemester.getId());
+            if (!conflicts.isEmpty()) {
+                Timetable c = conflicts.get(0);
+                String confName = subjectService.getSubjectById(c.getSubjectId())
+                        .map(Subject::getName).orElse("(알 수 없음)");
+                JOptionPane.showMessageDialog(dialog,
+                        "같은 요일·시간대에 이미 일정이 있어 수정할 수 없습니다.\n"
+                                + "충돌 대상: " + confName + " (" + c.getStartTime() + "~" + c.getEndTime() + ")",
+                        "시간 충돌", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // 2) 과목 정보 갱신
+            subjectService.getSubjectById(subjectId).ifPresent(sub -> {
+                sub.setName(name);
+                sub.setProfessor(prof);
+                sub.setClassroom(room);
+                sub.setColor(color);
+                subjectService.updateSubject(sub);
+            });
+
+            // 3) 시간표 항목 갱신 (같은 id 유지)
+            Timetable updated = Timetable.reconstruct(entryId, subjectId, dow, st, et);
+            timetableService.updateEntry(updated);
+
+            reloadDialogList(dialog);
+            reloadSubjects();
+
+            // 선택된 과목이 수정 대상이면 헤더도 갱신
+            if (selectedSubject != null && selectedSubject.getId().equals(subjectId)) {
+                subjectService.getSubjectById(subjectId).ifPresent(sub -> {
+                    selectedSubject = sub;
+                    view.showSubjectInHeader(sub);
+                });
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(dialog, ex.getMessage(),
+                    "수정 실패", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    // ============================================================
+    //  과제
+    // ============================================================
     private void onAddAssignment(Subject subject) {
         this.selectedSubject = subject;
         Window owner = SwingUtilities.getWindowAncestor(view);
@@ -254,7 +377,9 @@ public class SubjectController {
         refreshExpanded();
     }
 
-    // ===== 파일 (트리) =====
+    // ============================================================
+    //  파일 (트리)
+    // ============================================================
     private void onAddFile(Subject subject) {
         this.selectedSubject = subject;
         Window owner = SwingUtilities.getWindowAncestor(view);
@@ -297,7 +422,9 @@ public class SubjectController {
         if (selectedSubject != null) loadCanvas(selectedSubject);
     }
 
-    // ===== 캔버스 생성 =====
+    // ============================================================
+    //  캔버스 생성
+    // ============================================================
     private void onCanvasCreateText(Point2D world) {
         if (selectedSubject == null) return;
         createTextAt(world.getX(), world.getY());
@@ -553,12 +680,10 @@ public class SubjectController {
         if (ok != JOptionPane.YES_OPTION) return;
 
         if (comp instanceof TextBlockComponent) {
-            // block 행 삭제 → slot_open_blocks 는 CASCADE 로 정리됨
             canvasService.deleteTextBlock(comp.getBlockId());
         } else if (comp instanceof LinkBlockComponent) {
             canvasService.deleteLinkBlock(comp.getBlockId());
         } else if (comp instanceof FileBlockComponent) {
-            // 파일은 block 행을 지우지 않으므로(치우기) 연결을 먼저 직접 끊는다
             disconnectBlockFromAllRules(comp.getBlockId());
             canvasService.removeFilePlacement(comp.getBlockId());
         } else if (comp instanceof AutomationBlockComponent) {
@@ -567,7 +692,6 @@ public class SubjectController {
 
         view.getCanvasPanel().removeBlock(comp);
 
-        // 남아있는 실행 블록들의 연결 목록을 DB에서 다시 읽어 화면 갱신
         refreshAllAutomationRules();
         view.getCanvasPanel().repaint();
     }
