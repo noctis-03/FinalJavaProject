@@ -2,7 +2,8 @@ name: Build and Deploy Marp Slides
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,9 +21,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Convert Marp slides to HTML
-        run: |
-          docker run --rm -v $PWD:/home/marp/app marpteam/marp-cli \
-            slide/ -o dist/ --allow-local-files --html
+        uses: marp-team/marp-cli@v3
+        with:
+          args: docs/slides/ -o dist/ --allow-local-files --html
+
+      - name: List output (debug)
+        run: ls -la dist/
 
       - uses: actions/upload-pages-artifact@v3
         with:
