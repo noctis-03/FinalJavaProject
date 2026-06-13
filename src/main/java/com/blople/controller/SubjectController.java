@@ -119,6 +119,7 @@ public class SubjectController {
         canvas.setOnRunRequest(this::executeAutomation);
         canvas.setOnConnectRequest(this::onPortConnect);
         canvas.setOnEdgeContextMenu(this::onEdgeContextMenu);
+        canvas.setOnDisconnectRequest(this::onPortDisconnect);
 
         canvasDropTarget = new CanvasDropTarget(canvas);
         canvasDropTarget.setOnDrop(this::onCanvasDropped);
@@ -127,6 +128,14 @@ public class SubjectController {
 
         reloadSubjects();
     }
+
+    // ===== 노드 그래프: 입력 포트 드래그로 연결 분리 =====
+    private void onPortDisconnect(AutomationBlockComponent source, CanvasBlockComponent target) {
+        automationService.disconnectBlock(source.getRuleId(), target.getBlockId());
+        automationService.getRule(source.getRuleId()).ifPresent(source::setRule);
+        view.getCanvasPanel().repaint();
+    }
+
 
     private void reloadSubjects() {
         List<Subject> subjects = subjectService.getSubjectsBySemester(activeSemester.getId());
