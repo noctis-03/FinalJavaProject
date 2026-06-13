@@ -15,23 +15,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * 캘린더 비즈니스 로직 서비스 (FR-01 핵심).
- *
- * <p>책임:
- * <ul>
- *   <li>{@link CalendarModel} 의 상태 관리 (뷰 모드 전환, 날짜 이동)</li>
- *   <li>{@link ScheduleBlockDAO} 를 통한 일정 블록 CRUD</li>
- *   <li>일정 충돌 감지</li>
- *   <li>변경 시 {@link EventBus} 에 이벤트 발행 → View 자동 갱신</li>
- * </ul>
- *
- * <p>View 갱신은 EventBus 를 통한 단방향 알림으로만 일어난다.
- */
 public class CalendarService {
 
     public static final DateTimeFormatter TS_FMT   = ScheduleBlock.TS_FORMATTER;
     public static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    /** 충돌 검사를 잠시 끄고 일정을 일괄 추가해야 할 때 사용 (예: 시간표 → 반복 일정 자동 생성). */
+    private boolean conflictCheckEnabled = true;
 
     private final CalendarModel    calendarModel;
     private final ScheduleBlockDAO scheduleBlockDAO;
@@ -43,9 +33,9 @@ public class CalendarService {
         reloadCacheForCurrentView();
     }
 
-    // ============================================================
-    //  뷰 / 네비게이션
-    // ============================================================
+    public void setConflictCheckEnabled(boolean enabled) { this.conflictCheckEnabled = enabled; }
+    public boolean isConflictCheckEnabled()              { return conflictCheckEnabled; }
+
     public void switchViewMode(ViewMode mode) {
         calendarModel.setCurrentViewMode(mode);
         reloadCacheForCurrentView();
@@ -56,8 +46,7 @@ public class CalendarService {
         if (calendarModel.getCurrentViewMode() == ViewMode.WEEK) {
             calendarModel.setCurrentDate(calendarModel.getCurrentDate().plusDays(7));
         } else {
-            LocalDate cur = calendarModel.getCurrentDate();
-            calendarModel.setCurrentDate(cur.plusMonths(1));
+            calendarModel.setCurrentDate(calendarModel.getCurrentDate().plusMonths(1));
         }
         reloadCacheForCurrentView();
         eventBus.publish(EventBus.CALENDAR_DATE_CHANGED, calendarModel.getCurrentDate());
@@ -67,8 +56,7 @@ public class CalendarService {
         if (calendarModel.getCurrentViewMode() == ViewMode.WEEK) {
             calendarModel.setCurrentDate(calendarModel.getCurrentDate().minusDays(7));
         } else {
-            LocalDate cur = calendarModel.getCurrentDate();
-            calendarModel.setCurrentDate(cur.minusMonths(1));
+            calendarModel.setCurrentDate(calendarModel.getCurrentDate().minusMonths(1));
         }
         reloadCacheForCurrentView();
         eventBus.publish(EventBus.CALENDAR_DATE_CHANGED, calendarModel.getCurrentDate());
@@ -80,9 +68,6 @@ public class CalendarService {
         eventBus.publish(EventBus.CALENDAR_DATE_CHANGED, date);
     }
 
-    // ============================================================
-    //  조회
-    // ============================================================
     public List<ScheduleBlock> getBlocksForDate(LocalDate date) {
         String from = date.atStartOfDay().format(TS_FMT);
         String to   = date.plusDays(1).atStartOfDay().format(TS_FMT);
@@ -107,15 +92,12 @@ public class CalendarService {
         return scheduleBlockDAO.findById(blockId);
     }
 
-    // ============================================================
-    //  CRUD
-    // ============================================================
     public void addScheduleBlock(ScheduleBlock block) {
         validate(block);
+        ensureNoConflict(block);
         scheduleBlockDAO.insert(block);
         calendarModel.addBlock(block);
         eventBus.publish(EventBus.SCHEDULE_BLOCK_CREATED, block);
-        // TODO: AutoSaveManager.markDirty()  — AutoSaveManager 구현 후 연결
     }
 
     public void moveBlock(String blockId, String newStartDatetime, String newEndDatetime) {
@@ -124,6 +106,7 @@ public class CalendarService {
         target.setStartDatetime(newStartDatetime);
         target.setEndDatetime(newEndDatetime);
         validate(target);
+        ensureNoConflict(target);
         scheduleBlockDAO.update(target);
         reloadCacheForCurrentView();
         eventBus.publish(EventBus.SCHEDULE_BLOCK_MOVED, target);
@@ -134,6 +117,7 @@ public class CalendarService {
                 () -> new IllegalArgumentException("일정 블록을 찾을 수 없음: " + blockId));
         target.setEndDatetime(newEndDatetime);
         validate(target);
+        ensureNoConflict(target);
         scheduleBlockDAO.update(target);
         reloadCacheForCurrentView();
         eventBus.publish(EventBus.SCHEDULE_BLOCK_UPDATED, target);
@@ -141,6 +125,7 @@ public class CalendarService {
 
     public void updateBlock(ScheduleBlock updated) {
         validate(updated);
+        ensureNoConflict(updated);
         scheduleBlockDAO.update(updated);
         reloadCacheForCurrentView();
         eventBus.publish(EventBus.SCHEDULE_BLOCK_UPDATED, updated);
@@ -154,14 +139,6 @@ public class CalendarService {
         }
     }
 
-    // ============================================================
-    //  충돌 감지
-    // ============================================================
-
-    /**
-     * 주어진 블록과 같은 시간대에 겹치는 다른 블록 목록을 반환.
-     * (자기 자신은 제외)
-     */
     public List<ScheduleBlock> detectConflicts(ScheduleBlock target) {
         LocalDate date = LocalDateTime.parse(target.getStartDatetime(), TS_FMT).toLocalDate();
         List<ScheduleBlock> sameDay = getBlocksForDate(date);
@@ -174,9 +151,21 @@ public class CalendarService {
         return conflicts;
     }
 
-    // ============================================================
-    //  내부 헬퍼
-    // ============================================================
+    /** 충돌이 있으면 IllegalStateException 으로 거부 (요구 #8). */
+    private void ensureNoConflict(ScheduleBlock target) {
+        if (!conflictCheckEnabled) return;
+        List<ScheduleBlock> conflicts = detectConflicts(target);
+        if (!conflicts.isEmpty()) {
+            String names = conflicts.stream()
+                    .map(ScheduleBlock::getName)
+                    .limit(3)
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            throw new ScheduleConflictException(
+                    "이미 같은 시간대에 일정이 있습니다: " + names
+                            + (conflicts.size() > 3 ? " 외 " + (conflicts.size() - 3) + "건" : ""),
+                    conflicts);
+        }
+    }
 
     private void validate(ScheduleBlock block) {
         if (block.getName() == null || block.getName().isBlank()) {
@@ -189,7 +178,6 @@ public class CalendarService {
         }
     }
 
-    /** 현재 뷰모드/기준 날짜 범위의 블록을 다시 읽어 모델 캐시를 갱신. */
     public void reloadCacheForCurrentView() {
         List<ScheduleBlock> blocks;
         if (calendarModel.getCurrentViewMode() == ViewMode.WEEK) {
@@ -204,5 +192,15 @@ public class CalendarService {
 
     public CalendarModel getCalendarModel() {
         return calendarModel;
+    }
+
+    /** 충돌 발생 시 던지는 예외. */
+    public static class ScheduleConflictException extends RuntimeException {
+        private final List<ScheduleBlock> conflicts;
+        public ScheduleConflictException(String message, List<ScheduleBlock> conflicts) {
+            super(message);
+            this.conflicts = conflicts;
+        }
+        public List<ScheduleBlock> getConflicts() { return conflicts; }
     }
 }
