@@ -5,19 +5,47 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
-/**
- * 학기 모델. semester 테이블과 매핑.
- *
- * <p>날짜 필드는 "yyyy-MM-dd" 문자열로 저장한다.
- */
 public class Semester {
 
     public static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter TS_FMT   = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /** 1학기 / 2학기 구분. */
+    public enum Term {
+        FIRST(1, "1학기", 3, 6),   // 3월 ~ 6월 말
+        SECOND(2, "2학기", 9, 12); // 9월 ~ 12월 말
+
+        public final int number;
+        public final String label;
+        public final int startMonth;
+        public final int endMonth;
+
+        Term(int number, String label, int startMonth, int endMonth) {
+            this.number = number;
+            this.label = label;
+            this.startMonth = startMonth;
+            this.endMonth = endMonth;
+        }
+
+        public static Term ofNumber(int n) {
+            return n == 2 ? SECOND : FIRST;
+        }
+
+        /** 이 학기가 today 를 포함하는 연도를 반환 (없으면 올해). */
+        public LocalDate defaultStart(int year) {
+            return LocalDate.of(year, startMonth, 1);
+        }
+
+        public LocalDate defaultEnd(int year) {
+            // 해당 월의 마지막 날
+            LocalDate first = LocalDate.of(year, endMonth, 1);
+            return first.withDayOfMonth(first.lengthOfMonth());
+        }
+    }
+
     private String id;
     private String name;
-    private String startDate;   // yyyy-MM-dd
+    private String startDate;
     private String endDate;
     private boolean active;
     private String createdAt;
@@ -31,7 +59,6 @@ public class Semester {
         this.createdAt = LocalDateTime.now().format(TS_FMT);
     }
 
-    /** DAO 복원용 — Mapper 가 모든 영속 상태를 그대로 주입. */
     public static Semester reconstruct(String id, String name,
                                        String startDate, String endDate,
                                        boolean active, String createdAt) {
@@ -44,7 +71,6 @@ public class Semester {
         return s;
     }
 
-    // ===== getter / setter =====
     public String getId()                       { return id; }
     public String getName()                     { return name; }
     public void   setName(String name)          { this.name = name; }
@@ -63,8 +89,15 @@ public class Semester {
         return endDate != null ? LocalDate.parse(endDate, DATE_FMT) : null;
     }
 
+    /** 학기 이름에서 Term 추정 (예: "2026-1학기" → FIRST). */
+    public Term detectTerm() {
+        if (name != null && name.contains("2학기")) return Term.SECOND;
+        return Term.FIRST;
+    }
+
     @Override
     public String toString() {
-        return "Semester{name=" + name + ", " + startDate + "~" + endDate + (active ? ", ACTIVE" : "") + "}";
+        return "Semester{name=" + name + ", " + startDate + "~" + endDate
+                + (active ? ", ACTIVE" : "") + "}";
     }
 }
