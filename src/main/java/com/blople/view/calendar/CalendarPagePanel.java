@@ -1,5 +1,6 @@
 package com.blople.view.calendar;
 
+import com.blople.model.automation.CalendarAutomationRule;
 import com.blople.model.block.PresetBlock;
 import com.blople.model.block.ScheduleBlock;
 import com.blople.model.enums.ViewMode;
@@ -9,6 +10,7 @@ import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSplitPane;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -20,10 +22,10 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * 캘린더 페이지 전체 레이아웃 (FR-01, FR-02).
+ * 캘린더 페이지 전체 레이아웃 (FR-01, FR-02, FR-12).
  *
  * <p>좌측: {@link PresetBlockPanel} (미리블록)
- * <p>우측: 상단 툴바 [이전][오늘][다음] 날짜라벨 [주간/월간 토글] + 중앙 {@link CalendarGridPanel}
+ * <p>우측: 상단 툴바 + 중앙 {@link CalendarGridPanel}(위) / {@link CalendarAutomationPanel}(아래, 자동화 창)
  */
 public class CalendarPagePanel extends JPanel {
 
@@ -35,16 +37,22 @@ public class CalendarPagePanel extends JPanel {
     private final JButton viewToggle   = new JButton("월간 보기");
     private final JLabel  dateLabel    = new JLabel("―");
 
-    private final PresetBlockPanel  presetPanel = new PresetBlockPanel();
-    private final CalendarGridPanel gridPanel   = new CalendarGridPanel();
+    private final PresetBlockPanel       presetPanel = new PresetBlockPanel();
+    private final CalendarGridPanel      gridPanel   = new CalendarGridPanel();
+    private final CalendarAutomationPanel automationPanel = new CalendarAutomationPanel();
 
     public CalendarPagePanel() {
         setLayout(new BorderLayout());
 
-        // 우측: 툴바 + 그리드
+        // 우측: 그리드(위) / 자동화 창(아래) 세로 분할
+        JSplitPane rightSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, gridPanel, automationPanel);
+        rightSplit.setResizeWeight(0.72);     // 그리드가 더 크게
+        rightSplit.setDividerSize(6);
+        rightSplit.setBorder(null);
+
         JPanel rightArea = new JPanel(new BorderLayout());
         rightArea.add(buildToolbar(), BorderLayout.NORTH);
-        rightArea.add(gridPanel, BorderLayout.CENTER);
+        rightArea.add(rightSplit, BorderLayout.CENTER);
 
         add(presetPanel, BorderLayout.WEST);
         add(rightArea, BorderLayout.CENTER);
@@ -95,7 +103,10 @@ public class CalendarPagePanel extends JPanel {
     public void setWeekBaseDate(LocalDate date)         { gridPanel.setWeekBaseDate(date); }
     public void setMonthYearMonth(int year, int month)  { gridPanel.setMonthYearMonth(year, month); }
     public void refresh(List<ScheduleBlock> blocks)     { gridPanel.refresh(blocks); }
-    public void setPresets(List<PresetBlock> presets)   { presetPanel.setPresets(presets); }
+    public void setPresets(List<PresetBlock> presets)   {
+        presetPanel.setPresets(presets);
+        automationPanel.setPresets(presets); // 자동화 콤보도 같은 목록 사용
+    }
 
     // ===== 캘린더 콜백 =====
     public void setOnPrev(Runnable r)      { prevButton.addActionListener(e -> r.run()); }
@@ -110,7 +121,21 @@ public class CalendarPagePanel extends JPanel {
     public void setOnPresetPlace(Consumer<PresetBlock> cb)  { presetPanel.setOnPlace(cb); }
     public void setOnPresetDelete(Consumer<PresetBlock> cb) { presetPanel.setOnDelete(cb); }
 
+    // ===== 자동화 위임 =====
+    public void setAutomationRules(List<CalendarAutomationRule> rules) {
+        automationPanel.setRules(rules);
+    }
+    public void setOnAutomationAdd(Runnable r)                          { automationPanel.setOnAdd(r); }
+    public void setOnAutomationRuleChange(Consumer<CalendarAutomationRule> cb) {
+        automationPanel.setOnRuleChange(cb);
+    }
+    public void setOnAutomationRun(Consumer<CalendarAutomationRule> cb) { automationPanel.setOnRun(cb); }
+    public void setOnAutomationDelete(Consumer<CalendarAutomationRule> cb) {
+        automationPanel.setOnDelete(cb);
+    }
+
     public WeekViewPanel getWeekViewPanel() { return gridPanel.getWeekViewPanel(); }
     public CalendarGridPanel getGridPanel() { return gridPanel; }
     public PresetBlockPanel  getPresetPanel() { return presetPanel; }
+    public CalendarAutomationPanel getAutomationPanel() { return automationPanel; }
 }

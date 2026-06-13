@@ -2,10 +2,13 @@ package com.blople.controller;
 
 import com.blople.common.EventBus;
 import com.blople.dnd.CalendarDropTarget;
+import com.blople.model.automation.CalendarAutomationRule;
+import com.blople.model.automation.ExecutionLog;
 import com.blople.model.block.PresetBlock;
 import com.blople.model.block.ScheduleBlock;
 import com.blople.model.calendar.CalendarModel;
 import com.blople.model.enums.ViewMode;
+import com.blople.service.CalendarAutomationService;
 import com.blople.service.CalendarService;
 import com.blople.service.PresetBlockService;
 import com.blople.view.calendar.CalendarPagePanel;
@@ -21,16 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * 캘린더 페이지 컨트롤러 (FR-01, FR-02, FR-11).
- *
- * <p>책임:
- * <ul>
- *   <li>View(버튼/클릭) 이벤트 → Service 호출</li>
- *   <li>EventBus 구독 → 데이터 변경 시 View 자동 갱신</li>
- *   <li>CalendarModel 의 현재 상태를 View 표시(날짜 라벨 등)에 반영</li>
- *   <li>미리블록 생성/배치/삭제 (FR-02)</li>
- *   <li>미리블록 → 캘린더 드래그앤드롭 배치 (FR-11)</li>
- * </ul>
+ * 캘린더 페이지 컨트롤러 (FR-01, FR-02, FR-11, FR-12).
  */
 public class CalendarController {
 
@@ -39,6 +33,7 @@ public class CalendarController {
 
     private final CalendarService service;
     private final PresetBlockService presetService;
+    private final CalendarAutomationService automationService;
     private final CalendarPagePanel view;
     private final CalendarModel model;
     private final EventBus eventBus = EventBus.getInstance();
@@ -47,9 +42,11 @@ public class CalendarController {
 
     public CalendarController(CalendarService service,
                               PresetBlockService presetService,
+                              CalendarAutomationService automationService,
                               CalendarPagePanel view) {
         this.service = service;
         this.presetService = presetService;
+        this.automationService = automationService;
         this.view = view;
         this.model = service.getCalendarModel();
     }
@@ -62,6 +59,7 @@ public class CalendarController {
         syncViewState();
         refreshView();
         reloadPresets();
+        reloadAutomations();
     }
 
     private void wireCallbacks() {
@@ -75,17 +73,21 @@ public class CalendarController {
         view.setOnPresetCreate(this::onPresetCreate);
         view.setOnPresetPlace(this::onPresetPlace);
         view.setOnPresetDelete(this::onPresetDelete);
+
+        // 자동화 (FR-12)
+        view.setOnAutomationAdd(this::onAutomationAdd);
+        view.setOnAutomationRuleChange(this::onAutomationRuleChange);
+        view.setOnAutomationRun(this::onAutomationRun);
+        view.setOnAutomationDelete(this::onAutomationDelete);
     }
 
     private void subscribeEvents() {
-        // 데이터가 바뀌면 어느 경로로 바뀌든 View 를 다시 그린다.
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_CREATED, p -> refreshOnEdt());
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_UPDATED, p -> refreshOnEdt());
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_MOVED,   p -> refreshOnEdt());
         eventBus.subscribe(EventBus.SCHEDULE_BLOCK_DELETED, p -> refreshOnEdt());
     }
 
-    /** 주간 뷰를 미리블록 드롭 타겟으로 등록 (FR-11). */
     private void registerDropTarget() {
         calendarDropTarget = new CalendarDropTarget(view.getWeekViewPanel());
         calendarDropTarget.setOnDrop(this::onPresetDropped);
@@ -125,7 +127,6 @@ public class CalendarController {
     }
 
     private void onDateClick(LocalDate date) {
-        // 월간 뷰에서 날짜 클릭 → 그 주의 주간 뷰로 전환
         service.switchViewMode(ViewMode.WEEK);
         service.goToDate(date);
         syncViewState();
@@ -134,7 +135,8 @@ public class CalendarController {
 
     // ===== 미리블록 (FR-02) =====
     private void reloadPresets() {
-        view.setPresets(presetService.getAll());
+        List<PresetBlock> presets = presetService.getAll();
+        view.setPresets(presets);
     }
 
     private void onPresetCreate() {
@@ -145,6 +147,7 @@ public class CalendarController {
                 presetService.create(form.name(), form.colorHex(),
                         form.durationMinutes(), form.category());
                 reloadPresets();
+                reloadAutomations(); // 미리블록이 생기면 자동화 콤보도 갱신
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(owner, ex.getMessage(),
                         "생성 실패", JOptionPane.WARNING_MESSAGE);
@@ -153,7 +156,6 @@ public class CalendarController {
         dialog.setVisible(true);
     }
 
-    /** "배치" 버튼 — 현재 기준 날짜의 오전 9시에 배치. */
     private void onPresetPlace(PresetBlock preset) {
         LocalDate date = model.getCurrentDate();
         String start = date.atTime(9, 0).format(TS_FMT_LOCAL);
@@ -172,21 +174,55 @@ public class CalendarController {
         if (ok != JOptionPane.YES_OPTION) return;
         presetService.delete(preset.getId());
         reloadPresets();
+        reloadAutomations();
     }
 
     // ===== 드래그앤드롭 배치 (FR-11) =====
-
-    /** 미리블록이 캘린더 특정 시각에 드롭됨 → 그 시각에 일정 배치. */
     private void onPresetDropped(String presetBlockId, LocalDateTime when) {
         try {
             String start = when.format(TS_FMT_LOCAL);
             presetService.placeOnCalendar(presetBlockId, start);
-            // addScheduleBlock 이 SCHEDULE_BLOCK_CREATED 발행 → refreshOnEdt 자동 갱신
         } catch (Exception ex) {
             SwingUtilities.invokeLater(() ->
                     JOptionPane.showMessageDialog(view, ex.getMessage(),
                             "배치 실패", JOptionPane.WARNING_MESSAGE));
         }
+    }
+
+    // ===== 자동화 (FR-12) =====
+    private void reloadAutomations() {
+        List<CalendarAutomationRule> rules = automationService.getAllRules();
+        view.setAutomationRules(rules);
+    }
+
+    private void onAutomationAdd() {
+        automationService.createRule("캘린더 자동화");
+        reloadAutomations();
+    }
+
+    /** 콤보(요일/미리블록) 변경 시 즉시 저장. */
+    private void onAutomationRuleChange(CalendarAutomationRule rule) {
+        automationService.updateRule(rule);
+    }
+
+    private void onAutomationRun(CalendarAutomationRule rule) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        ExecutionLog log = automationService.execute(rule.getId());
+        int type = log.isSuccess()
+                ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE;
+        JOptionPane.showMessageDialog(owner, log.getResultMessage(),
+                log.isSuccess() ? "자동화 실행 완료" : "자동화 실행 실패", type);
+        // 성공 시 등록된 일정은 SCHEDULE_BLOCK_CREATED 이벤트로 캘린더 자동 갱신됨
+    }
+
+    private void onAutomationDelete(CalendarAutomationRule rule) {
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        int ok = JOptionPane.showConfirmDialog(owner,
+                "이 자동화를 삭제할까요?",
+                "자동화 삭제", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (ok != JOptionPane.YES_OPTION) return;
+        automationService.deleteRule(rule.getId());
+        reloadAutomations();
     }
 
     // ===== View 상태 동기화 =====
