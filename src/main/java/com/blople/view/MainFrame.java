@@ -9,6 +9,7 @@ import com.blople.database.dao.AssignmentDAO;
 import com.blople.database.dao.AutomationBlockDAO;
 import com.blople.database.dao.AutomationRuleDAO;
 import com.blople.database.dao.BlockDAO;
+import com.blople.database.dao.CalendarAutomationDAO;
 import com.blople.database.dao.CanvasStateDAO;
 import com.blople.database.dao.ExecutionLogDAO;
 import com.blople.database.dao.FileBlockDAO;
@@ -22,6 +23,7 @@ import com.blople.database.dao.TimetableDAO;
 import com.blople.model.calendar.CalendarModel;
 import com.blople.service.AssignmentService;
 import com.blople.service.AutomationService;
+import com.blople.service.CalendarAutomationService;
 import com.blople.service.CalendarService;
 import com.blople.service.CanvasService;
 import com.blople.service.FileBlockService;
@@ -41,8 +43,7 @@ import java.awt.Dimension;
  * 메인 윈도우 프레임.
  * 상단 NavigationPanel + 캘린더/과목 페이지를 CardLayout 으로 전환한다.
  *
- * <p>v0.2 캘린더 / v0.3 과목·시간표 / v0.4 과제·파일 / v0.5 미리블록·DnD
- *   / v0.6 무한 캔버스(메모·링크·파일) / v0.7 과목 자동화.
+ * <p>v0.6 무한 캔버스 / v0.7 과목·캘린더 자동화.
  */
 public class MainFrame extends JFrame {
 
@@ -80,8 +81,15 @@ public class MainFrame extends JFrame {
         PresetBlockDAO     presetDAO = new PresetBlockDAO(dbManager, blockDAO, tx);
         PresetBlockService presetSvc = new PresetBlockService(presetDAO, calendarSvc);
 
+        // === 캘린더 자동화 (FR-12) ===
+        ExecutionLogDAO         executionLogDAO       = new ExecutionLogDAO(dbManager);
+        CalendarAutomationDAO   calAutomationDAO      = new CalendarAutomationDAO(dbManager, tx);
+        CalendarAutomationService calAutomationSvc    = new CalendarAutomationService(
+                calAutomationDAO, executionLogDAO, presetDAO, presetSvc);
+
         calendarPagePanel  = new CalendarPagePanel();
-        calendarController = new CalendarController(calendarSvc, presetSvc, calendarPagePanel);
+        calendarController = new CalendarController(
+                calendarSvc, presetSvc, calAutomationSvc, calendarPagePanel);
 
         // === 과목 / 시간표 / 과제 / 파일 / 캔버스 / 자동화 ===
         SemesterDAO    semesterDAO    = new SemesterDAO(dbManager);
@@ -95,7 +103,6 @@ public class MainFrame extends JFrame {
 
         AutomationRuleDAO  automationRuleDAO  = new AutomationRuleDAO(dbManager, tx);
         AutomationBlockDAO automationBlockDAO = new AutomationBlockDAO(dbManager, blockDAO, tx);
-        ExecutionLogDAO    executionLogDAO    = new ExecutionLogDAO(dbManager);
 
         SubjectService    subjectSvc    = new SubjectService(semesterDAO, subjectDAO);
         TimetableService  timetableSvc  = new TimetableService(timetableDAO, scheduleDAO, subjectSvc);
