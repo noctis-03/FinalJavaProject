@@ -22,6 +22,21 @@ footer: '자바프로그래밍 | 20220540 김가온'
 
 ---
 
+<style scoped>
+table {
+  font-size: 0.85rem;
+}
+table th:nth-child(1), table td:nth-child(1) {
+  width: 12%;
+}
+table th:nth-child(2), table td:nth-child(2) {
+  width: 23%;
+}
+table th:nth-child(3), table td:nth-child(3) {
+  width: 65%;
+}
+</style>
+
 ### v0.2 — 캘린더 코어
 
 | FR 번호 | 이름 | 설명 |
@@ -29,6 +44,21 @@ footer: '자바프로그래밍 | 20220540 김가온'
 | FR-01 | 블록 기반 캘린더 페이지 | 블록 단위로 일정을 생성, 배치, 이동할 수 있는 기본적인 캘린더 시스템 페이지를 구현합니다. |
 
 ---
+
+<style scoped>
+table {
+  font-size: 0.85rem;
+}
+table th:nth-child(1), table td:nth-child(1) {
+  width: 12%;
+}
+table th:nth-child(2), table td:nth-child(2) {
+  width: 23%;
+}
+table th:nth-child(3), table td:nth-child(3) {
+  width: 65%;
+}
+</style>
 
 ### v0.3 — 과목 및 시간표
 
@@ -39,6 +69,21 @@ footer: '자바프로그래밍 | 20220540 김가온'
 | FR-10 | 과제 입력 | 캘린더 페이지의 과제 블록과 연동되어 과제를 입력할 수 있습니다. |
 
 ---
+
+<style scoped>
+table {
+  font-size: 0.85rem;
+}
+table th:nth-child(1), table td:nth-child(1) {
+  width: 12%;
+}
+table th:nth-child(2), table td:nth-child(2) {
+  width: 23%;
+}
+table th:nth-child(3), table td:nth-child(3) {
+  width: 65%;
+}
+</style>
 
 ## v0.4 — 블록 시스템
 
@@ -51,6 +96,21 @@ footer: '자바프로그래밍 | 20220540 김가온'
 
 ---
 
+<style scoped>
+table {
+  font-size: 0.85rem;
+}
+table th:nth-child(1), table td:nth-child(1) {
+  width: 12%;
+}
+table th:nth-child(2), table td:nth-child(2) {
+  width: 23%;
+}
+table th:nth-child(3), table td:nth-child(3) {
+  width: 65%;
+}
+</style>
+
 ## v0.5 — 미리블록 및 DnD
 
 | FR 번호 | 이름 | 설명 |
@@ -60,6 +120,21 @@ footer: '자바프로그래밍 | 20220540 김가온'
 
 ---
 
+<style scoped>
+table {
+  font-size: 0.85rem;
+}
+table th:nth-child(1), table td:nth-child(1) {
+  width: 12%;
+}
+table th:nth-child(2), table td:nth-child(2) {
+  width: 23%;
+}
+table th:nth-child(3), table td:nth-child(3) {
+  width: 65%;
+}
+</style>
+
 ## v0.6 — 무한 캔버스
 
 | FR 번호 | 이름 | 설명 |
@@ -67,6 +142,21 @@ footer: '자바프로그래밍 | 20220540 김가온'
 | FR-08 | 무한 캔버스 보드 | 파일 블록을 보드 위에 자유롭게 배치하여 멀티태스킹을 지원합니다. |
 
 ---
+
+<style scoped>
+table {
+  font-size: 0.85rem;
+}
+table th:nth-child(1), table td:nth-child(1) {
+  width: 12%;
+}
+table th:nth-child(2), table td:nth-child(2) {
+  width: 23%;
+}
+table th:nth-child(3), table td:nth-child(3) {
+  width: 65%;
+}
+</style>
 
 ## v0.7 — 자동화 시스템
 
@@ -76,6 +166,21 @@ footer: '자바프로그래밍 | 20220540 김가온'
 | FR-13 | 자동화 블록 | 자동화 시스템에서 사용할 프롬프트형 블록입니다. |
 
 ---
+
+<style scoped>
+table {
+  font-size: 0.85rem;
+}
+table th:nth-child(1), table td:nth-child(1) {
+  width: 12%;
+}
+table th:nth-child(2), table td:nth-child(2) {
+  width: 23%;
+}
+table th:nth-child(3), table td:nth-child(3) {
+  width: 65%;
+}
+</style>
 
 ## v0.8 — 외부 API 활용
 
