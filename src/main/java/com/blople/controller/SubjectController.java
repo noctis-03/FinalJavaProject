@@ -49,6 +49,14 @@ import java.util.List;
 
 /**
  * 과목 페이지 컨트롤러 (FR-03 ~ FR-13).
+ *
+ * <p>자동화(실행) 블록은 노드 그래프 방식으로 동작한다.
+ * <ul>
+ *   <li>실행 블록의 포트(●)를 드래그해 파일/링크 블록 위에 놓으면 연결</li>
+ *   <li>실행 블록의 "▶ 실행" 버튼 클릭 시 연결된 블록을 한 번에 연다</li>
+ *   <li>연결선(엣지) 우클릭 → 해당 연결만 해제</li>
+ *   <li>실행 블록 본체 더블클릭 → 연결 목록 보기/제거</li>
+ * </ul>
  */
 public class SubjectController {
 
@@ -106,6 +114,11 @@ public class SubjectController {
         canvas.setOnEmptyContextMenu(this::showEmptyContextMenu);
         canvas.setOnBlockContextMenu(this::showBlockContextMenu);
         canvas.setOnBlockDroppedOnBlock(this::onBlockDroppedOnBlock);
+
+        // === 노드 그래프 연결 ===
+        canvas.setOnRunRequest(this::executeAutomation);
+        canvas.setOnConnectRequest(this::onPortConnect);
+        canvas.setOnEdgeContextMenu(this::onEdgeContextMenu);
 
         canvasDropTarget = new CanvasDropTarget(canvas);
         canvasDropTarget.setOnDrop(this::onCanvasDropped);
@@ -290,6 +303,7 @@ public class SubjectController {
             return;
         }
 
+        // 트리에서 파일/링크를 드롭한 지점이 실행 블록 위면 연결 (보조 경로)
         if (type == BlockType.FILE || type == BlockType.LINK) {
             AutomationBlockComponent autoComp = automationBlockAtWorld(world);
             if (autoComp != null) {
@@ -314,11 +328,34 @@ public class SubjectController {
         return (hit instanceof AutomationBlockComponent ac) ? ac : null;
     }
 
-    // ===== 캔버스 내부 블록을 다른 블록 위에 놓음 (연결 보완) =====
+    // ===== 노드 그래프: 포트 드래그로 연결 =====
+    private void onPortConnect(AutomationBlockComponent autoComp, CanvasBlockComponent target) {
+        BlockType type;
+        if (target instanceof FileBlockComponent)      type = BlockType.FILE;
+        else if (target instanceof LinkBlockComponent) type = BlockType.LINK;
+        else return; // 파일/링크만 연결 가능
+
+        connectToAutomation(autoComp, target.getBlockId(), type);
+    }
+
+    // ===== 노드 그래프: 엣지 우클릭으로 해제 =====
+    private void onEdgeContextMenu(AutomationBlockComponent source,
+                                   CanvasBlockComponent target, Point screen) {
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem disconnect = new JMenuItem("연결 끊기");
+        disconnect.addActionListener(e -> {
+            automationService.disconnectBlock(source.getRuleId(), target.getBlockId());
+            automationService.getRule(source.getRuleId()).ifPresent(source::setRule);
+            view.getCanvasPanel().repaint();
+        });
+        menu.add(disconnect);
+        menu.show(view.getCanvasPanel(), screen.x, screen.y);
+    }
+
+    // ===== 캔버스 내부 블록을 다른 블록 위에 놓음 (보조 연결 경로) =====
     private void onBlockDroppedOnBlock(CanvasBlockComponent dragged,
                                        CanvasBlockComponent target,
                                        double originWorldX, double originWorldY) {
-        // 파일/링크를 자동화 블록 위에 놓으면 연결
         boolean draggedIsConnectable =
                 (dragged instanceof FileBlockComponent) || (dragged instanceof LinkBlockComponent);
         if (draggedIsConnectable && target instanceof AutomationBlockComponent autoComp) {
@@ -398,12 +435,12 @@ public class SubjectController {
                 placed.block(), placed.rule(), st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
     }
 
-    // ===== 더블클릭: 메모/링크=편집, 파일=열기, 자동화=실행 =====
+    // ===== 더블클릭: 메모/링크=편집, 파일=열기, 자동화=연결 목록 보기 =====
     private void onCanvasDoubleClickBlock(CanvasBlockComponent comp) {
         if (comp instanceof FileBlockComponent fc) {
             openFileFromCanvas(fc);
         } else if (comp instanceof AutomationBlockComponent ac) {
-            executeAutomation(ac);
+            showAutomationConnections(ac);
         } else {
             onCanvasEditBlock(comp);
         }
@@ -507,15 +544,35 @@ public class SubjectController {
         if (ok != JOptionPane.YES_OPTION) return;
 
         if (comp instanceof TextBlockComponent) {
+            // block 행 삭제 → slot_open_blocks 는 CASCADE 로 정리됨
             canvasService.deleteTextBlock(comp.getBlockId());
         } else if (comp instanceof LinkBlockComponent) {
             canvasService.deleteLinkBlock(comp.getBlockId());
         } else if (comp instanceof FileBlockComponent) {
+            // 파일은 block 행을 지우지 않으므로(치우기) 연결을 먼저 직접 끊는다
+            disconnectBlockFromAllRules(comp.getBlockId());
             canvasService.removeFilePlacement(comp.getBlockId());
         } else if (comp instanceof AutomationBlockComponent) {
             automationService.deleteAutomationBlock(comp.getBlockId());
         }
+
         view.getCanvasPanel().removeBlock(comp);
+
+        // 남아있는 실행 블록들의 연결 목록을 DB에서 다시 읽어 화면 갱신
+        refreshAllAutomationRules();
+        view.getCanvasPanel().repaint();
+    }
+
+    /** 주어진 블록을 캔버스의 모든 실행 블록 규칙에서 연결 해제. */
+    private void disconnectBlockFromAllRules(String blockId) {
+        view.getCanvasPanel().forEachAutomation(ac ->
+                automationService.disconnectBlock(ac.getRuleId(), blockId));
+    }
+
+    /** 캔버스의 모든 실행 블록 규칙을 DB에서 다시 읽어 컴포넌트에 반영. */
+    private void refreshAllAutomationRules() {
+        view.getCanvasPanel().forEachAutomation(ac ->
+                automationService.getRule(ac.getRuleId()).ifPresent(ac::setRule));
     }
 
     // ===== 우클릭 메뉴 =====
@@ -556,7 +613,7 @@ public class SubjectController {
             menu.add(remove);
 
         } else if (comp instanceof AutomationBlockComponent ac) {
-            JMenuItem run = new JMenuItem("⚡ 실행 (한 번에 열기)");
+            JMenuItem run = new JMenuItem("▶ 실행 (한 번에 열기)");
             run.addActionListener(e -> executeAutomation(ac));
             menu.add(run);
             JMenuItem manage = new JMenuItem("연결 목록 보기/제거");
@@ -590,7 +647,7 @@ public class SubjectController {
         AutomationRule rule = automationService.getRule(ac.getRuleId()).orElse(null);
         if (rule == null || rule.getOpenBlocks().isEmpty()) {
             JOptionPane.showMessageDialog(owner,
-                    "연결된 블록이 없습니다.\n파일/링크를 실행 블록 위로 끌어다 넣으세요.",
+                    "연결된 블록이 없습니다.\n실행 블록의 포트(●)를 끌어 파일/링크에 연결하세요.",
                     "연결 목록", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
