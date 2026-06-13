@@ -16,6 +16,13 @@ footer: '자바프로그래밍 | 20220540 김가온'
 
 ---
 
+<style scoped>
+pre {
+  font-size: 0.55rem;
+  line-height: 1.2;
+}
+</style>
+
 ## 디렉터리 구조
 
 ```
