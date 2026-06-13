@@ -33,6 +33,8 @@ import java.util.function.Consumer;
  */
 public class SubjectTreePanel extends JPanel {
 
+    private static final int PANEL_WIDTH = 300;
+
     private final JButton timetableButton = new JButton("＋ 시간표 입력");
     private final JPanel container = new JPanel();
 
@@ -54,7 +56,7 @@ public class SubjectTreePanel extends JPanel {
 
     public SubjectTreePanel() {
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(300, 0));
+        setPreferredSize(new Dimension(PANEL_WIDTH, 0));
         setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(0xDDDDDD)));
 
         add(buildHeader(), BorderLayout.NORTH);
@@ -64,6 +66,8 @@ public class SubjectTreePanel extends JPanel {
         JScrollPane sp = new JScrollPane(container);
         sp.setBorder(null);
         sp.getVerticalScrollBar().setUnitIncrement(16);
+        // 가로 스크롤은 두지 않음 — 내용이 폭을 넘기지 않도록 라벨을 줄인다.
+        sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         add(sp, BorderLayout.CENTER);
     }
 
@@ -193,10 +197,13 @@ public class SubjectTreePanel extends JPanel {
         JLabel name = new JLabel(a.getStatus() == AssignmentStatus.DONE
                 ? "<html><strike>" + escape(a.getName()) + "</strike></html>" : a.getName());
         name.setFont(new Font("SansSerif", Font.BOLD, 12));
+        name.setToolTipText(a.getName());
+        constrainLabel(name);
         JLabel dl = new JLabel("마감 " + a.getDeadline()
                 + (a.isApproachingDeadline(3) ? " ⚠" : "") + (a.isOverdue() ? " ❗" : ""));
         dl.setFont(new Font("SansSerif", Font.PLAIN, 11));
         dl.setForeground(a.isOverdue() ? new Color(0xE5484D) : new Color(0x888888));
+        constrainLabel(dl);
         left.add(name);
         left.add(dl);
 
@@ -229,7 +236,9 @@ public class SubjectTreePanel extends JPanel {
 
         JLabel name = new JLabel(fileIcon(f.getFileType()) + " " + f.getFileName());
         name.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        name.setToolTipText(f.getFileName());
         if (!valid) name.setForeground(new Color(0xE5484D));
+        constrainLabel(name);
 
         // ★ 파일 행을 캔버스로 드래그 — 실제 block_id 운반 (FR-05 + FR-08 + FR-11)
         new BlockDragSource(row,  f::getId, BlockType.FILE);
@@ -259,7 +268,9 @@ public class SubjectTreePanel extends JPanel {
         JPanel row = new JPanel(new BorderLayout(4, 0));
         row.setBackground(Color.WHITE);
         row.setBorder(BorderFactory.createEmptyBorder(4, 24, 4, 8));
+        // 폭을 패널 폭으로 고정해 긴 이름이 칸을 밀어내지 못하게 한다.
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        row.setPreferredSize(new Dimension(PANEL_WIDTH - 8, 44));
         return row;
     }
 
@@ -268,6 +279,12 @@ public class SubjectTreePanel extends JPanel {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         return p;
+    }
+
+    /** 라벨이 선호 너비로 칸을 밀어내지 못하도록 최소/선호 너비를 0으로 눌러둔다. */
+    private void constrainLabel(JLabel label) {
+        label.setMinimumSize(new Dimension(0, label.getPreferredSize().height));
+        label.setPreferredSize(new Dimension(0, label.getPreferredSize().height));
     }
 
     private JButton smallButton(String text) {
