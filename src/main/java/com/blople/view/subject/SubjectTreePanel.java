@@ -35,7 +35,7 @@ public class SubjectTreePanel extends JPanel {
 
     private static final int PANEL_WIDTH = 300;
 
-    private final JButton timetableButton = new JButton("＋ 시간표 입력");
+    private final JButton timetableButton = new JButton("＋ 시간표 수정");
     private final JPanel container = new JPanel();
 
     private final List<CollapsiblePanel> subjectPanels = new ArrayList<>();
