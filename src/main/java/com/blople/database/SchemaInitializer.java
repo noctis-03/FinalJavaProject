@@ -247,11 +247,13 @@ public class SchemaInitializer {
                 name        TEXT,
                 context     TEXT NOT NULL,
                 subject_id  TEXT,
+                start_hour  INTEGER DEFAULT 9,
                 is_active   INTEGER DEFAULT 1,
                 created_at  TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (subject_id) REFERENCES subject(id) ON DELETE CASCADE
             )
             """);
+
 
         // 캔버스 위 자동화(실행) 블록 (FR-12, FR-13)
         ddls.add("""
