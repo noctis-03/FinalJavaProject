@@ -345,6 +345,18 @@ public class SchemaInitializer {
             )
             """);
 
+        // ---------- 7. 외부 링크 (캘린더 페이지 우측 즐겨찾기) ----------
+        ddls.add("""
+            CREATE TABLE IF NOT EXISTS external_link (
+                id          TEXT PRIMARY KEY,
+                name        TEXT NOT NULL,
+                url         TEXT NOT NULL,
+                sort_order  INTEGER DEFAULT 0,
+                created_at  TEXT DEFAULT (datetime('now'))
+            )
+            """);
+
+
         // ---------- 인덱스 (성능) ----------
         ddls.add("CREATE INDEX IF NOT EXISTS idx_subject_semester    ON subject(semester_id)");
         ddls.add("CREATE INDEX IF NOT EXISTS idx_schedule_subject    ON schedule_block(subject_id)");

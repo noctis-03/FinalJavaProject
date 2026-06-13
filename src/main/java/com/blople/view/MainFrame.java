@@ -87,9 +87,17 @@ public class MainFrame extends JFrame {
         CalendarAutomationService calAutomationSvc    = new CalendarAutomationService(
                 calAutomationDAO, executionLogDAO, presetDAO, presetSvc);
 
-        calendarPagePanel  = new CalendarPagePanel();
+// === 외부 링크 ===
+        com.blople.database.dao.ExternalLinkDAO externalLinkDAO =
+                new com.blople.database.dao.ExternalLinkDAO(dbManager);
+        com.blople.service.ExternalLinkService externalLinkSvc =
+                new com.blople.service.ExternalLinkService(externalLinkDAO);
+        externalLinkSvc.seedDefaultsIfEmpty();
+
+        calendarPagePanel  = new CalendarPagePanel(externalLinkSvc);
         calendarController = new CalendarController(
                 calendarSvc, presetSvc, calAutomationSvc, calendarPagePanel);
+
 
         // === 과목 / 시간표 / 과제 / 파일 / 캔버스 / 자동화 ===
         SemesterDAO    semesterDAO    = new SemesterDAO(dbManager);

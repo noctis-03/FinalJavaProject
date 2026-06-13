@@ -4,6 +4,7 @@ import com.blople.model.automation.CalendarAutomationRule;
 import com.blople.model.block.PresetBlock;
 import com.blople.model.block.ScheduleBlock;
 import com.blople.model.enums.ViewMode;
+import com.blople.service.ExternalLinkService;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -22,6 +23,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * 캘린더 페이지 전체 레이아웃.
+ *
+ * <p>좌측: 미리블록 패널 / 가운데: 캘린더 + 자동화 / 우측: 외부 링크 패널.
+ */
 public class CalendarPagePanel extends JPanel {
 
     private static final Color TOOLBAR_BG = new Color(0xFFFFFF);
@@ -32,24 +38,28 @@ public class CalendarPagePanel extends JPanel {
     private final JButton viewToggle   = new JButton("월간 보기");
     private final JLabel  dateLabel    = new JLabel("―");
 
-    private final PresetBlockPanel       presetPanel = new PresetBlockPanel();
-    private final CalendarGridPanel      gridPanel   = new CalendarGridPanel();
+    private final PresetBlockPanel        presetPanel = new PresetBlockPanel();
+    private final CalendarGridPanel       gridPanel   = new CalendarGridPanel();
     private final CalendarAutomationPanel automationPanel = new CalendarAutomationPanel();
+    private final ExternalLinkPanel       externalLinkPanel;
 
-    public CalendarPagePanel() {
+    public CalendarPagePanel(ExternalLinkService externalLinkService) {
         setLayout(new BorderLayout());
 
-        JSplitPane rightSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, gridPanel, automationPanel);
-        rightSplit.setResizeWeight(0.72);
-        rightSplit.setDividerSize(6);
-        rightSplit.setBorder(null);
+        this.externalLinkPanel = new ExternalLinkPanel(externalLinkService);
 
-        JPanel rightArea = new JPanel(new BorderLayout());
-        rightArea.add(buildToolbar(), BorderLayout.NORTH);
-        rightArea.add(rightSplit, BorderLayout.CENTER);
+        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, gridPanel, automationPanel);
+        centerSplit.setResizeWeight(0.72);
+        centerSplit.setDividerSize(6);
+        centerSplit.setBorder(null);
+
+        JPanel centerArea = new JPanel(new BorderLayout());
+        centerArea.add(buildToolbar(), BorderLayout.NORTH);
+        centerArea.add(centerSplit, BorderLayout.CENTER);
 
         add(presetPanel, BorderLayout.WEST);
-        add(rightArea, BorderLayout.CENTER);
+        add(centerArea, BorderLayout.CENTER);
+        add(externalLinkPanel, BorderLayout.EAST);
     }
 
     private JPanel buildToolbar() {
@@ -134,4 +144,5 @@ public class CalendarPagePanel extends JPanel {
     public CalendarGridPanel getGridPanel() { return gridPanel; }
     public PresetBlockPanel  getPresetPanel() { return presetPanel; }
     public CalendarAutomationPanel getAutomationPanel() { return automationPanel; }
+    public ExternalLinkPanel getExternalLinkPanel()      { return externalLinkPanel; }
 }
