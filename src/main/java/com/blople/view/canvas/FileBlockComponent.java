@@ -11,7 +11,7 @@ import java.awt.Graphics2D;
  * 캔버스 위 파일 블록 (FR-05, FR-08).
  *
  * <p>좌측 트리의 파일 블록을 캔버스로 드래그해 배치한 결과를 렌더링한다.
- * 같은 블록이 트리와 캔버스 양쪽에 존재할 수 있으며(배치만 추가됨),
+ * 노드 그래프에서 실행 블록의 연결 대상이 되며, 좌측 입력 포트(●)를 가진다.
  * 더블클릭하면 시스템 기본 프로그램으로 파일을 연다(컨트롤러에서 처리).
  *
  * <p>원본 파일이 삭제/이동되어 찾을 수 없으면 경고를 표시한다.
@@ -30,6 +30,10 @@ public class FileBlockComponent extends CanvasBlockComponent {
 
     public FileBlock getModel() { return model; }
 
+    /** 실행 블록의 연결 대상 → 입력 포트 보유. */
+    @Override
+    public boolean hasInputPort() { return true; }
+
     @Override
     protected Color bodyColor() {
         return model.isFileValid() ? FILE_BG : INVALID_BG;
@@ -44,26 +48,27 @@ public class FileBlockComponent extends CanvasBlockComponent {
     protected void paintBody(Graphics2D g2, int sx, int sy, int sw, int sh) {
         boolean valid = model.isFileValid();
 
-        // 과목 색상 띠 (좌측)
+        // 과목 색상 띠 (좌측) — 입력 포트와 겹치지 않도록 살짝 안쪽
         Color accent = BlockRenderer.parseColor(model.getColor(), new Color(0x4D96FF));
         g2.setColor(accent);
         g2.fillRect(sx + 1, sy + 1, 4, sh - 2);
 
-        // 메타 정보
+        // 메타 정보 (좌측 입력 포트 자리 확보를 위해 x 를 오른쪽으로)
+        int textX = sx + 12;
         g2.setColor(new Color(0x666666));
         g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
         String type = model.getFileType() == null ? "" : model.getFileType().toUpperCase();
         String meta = (type.isEmpty() ? "" : type + "  ") + humanSize(model.getFileSize());
-        g2.drawString(clip(g2, meta, sw - 12), sx + 8, sy + 34);
+        g2.drawString(clip(g2, meta, sw - 18), textX, sy + 34);
 
         if (!valid) {
             g2.setColor(new Color(0xE5484D));
             g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
-            g2.drawString(clip(g2, "⚠ 파일을 찾을 수 없음", sw - 12), sx + 8, sy + 50);
+            g2.drawString(clip(g2, "⚠ 파일을 찾을 수 없음", sw - 18), textX, sy + 50);
         } else if (sh >= 56) {
             g2.setColor(new Color(0x999999));
             g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
-            g2.drawString("더블클릭하여 열기", sx + 8, sy + 50);
+            g2.drawString("더블클릭하여 열기", textX, sy + 50);
         }
     }
 
