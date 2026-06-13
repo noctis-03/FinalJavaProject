@@ -9,15 +9,10 @@ import javax.swing.ScrollPaneConstants;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * 주간/월간 뷰를 전환하는 컨테이너 (FR-01).
- *
- * <p>주간 뷰는 세로로 길어 스크롤이 필요하므로 JScrollPane 으로 감싼다.
- * 월간 뷰는 화면에 맞춰 그리므로 스크롤 없이 그대로 둔다.
- */
 public class CalendarGridPanel extends JPanel {
 
     private static final String CARD_WEEK  = "WEEK";
@@ -53,17 +48,14 @@ public class CalendarGridPanel extends JPanel {
         cardLayout.show(cards, mode == ViewMode.WEEK ? CARD_WEEK : CARD_MONTH);
     }
 
-    /** 주간 뷰 기준 날짜 설정. */
     public void setWeekBaseDate(LocalDate date) {
         weekViewPanel.setBaseDate(date);
     }
 
-    /** 월간 뷰 연/월 설정. */
     public void setMonthYearMonth(int year, int month) {
         monthViewPanel.setYearMonth(year, month);
     }
 
-    /** 현재 활성 뷰에 블록 데이터를 반영. */
     public void refresh(List<ScheduleBlock> blocks) {
         if (currentMode == ViewMode.WEEK) {
             weekViewPanel.setBlocks(blocks);
@@ -72,9 +64,24 @@ public class CalendarGridPanel extends JPanel {
         }
     }
 
-    // ===== 콜백 위임 =====
     public void setOnBlockClick(Consumer<ScheduleBlock> cb) {
         weekViewPanel.setOnBlockClick(cb);
+    }
+
+    public void setOnBlockDoubleClick(Consumer<ScheduleBlock> cb) {
+        weekViewPanel.setOnBlockDoubleClick(cb);
+    }
+
+    public void setOnBlockDelete(Consumer<ScheduleBlock> cb) {
+        weekViewPanel.setOnBlockDelete(cb);
+    }
+
+    public void setOnBlockMove(WeekViewPanel.BlockMoveListener cb) {
+        weekViewPanel.setOnBlockMove(cb);
+    }
+
+    public void setOnEmptySlotDoubleClick(Consumer<LocalDateTime> cb) {
+        weekViewPanel.setOnEmptySlotDoubleClick(cb);
     }
 
     public void setOnDateClick(Consumer<LocalDate> cb) {
