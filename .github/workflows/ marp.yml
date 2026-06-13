@@ -23,7 +23,7 @@ jobs:
       - name: Convert Marp slides to HTML
         run: |
           docker run --rm -v $PWD:/home/marp/app marpteam/marp-cli \
-            docs/slides/ -o dist/ --allow-local-files --html
+            --input-dir docs/slides --output dist --allow-local-files --html
 
       - name: List output (debug)
         run: ls -la dist/
