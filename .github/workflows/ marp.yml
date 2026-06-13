@@ -21,9 +21,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Convert Marp slides to HTML
-        uses: marp-team/marp-cli@v3
-        with:
-          args: docs/slides/ -o dist/ --allow-local-files --html
+        run: |
+          docker run --rm -v $PWD:/home/marp/app marpteam/marp-cli \
+            docs/slides/ -o dist/ --allow-local-files --html
 
       - name: List output (debug)
         run: ls -la dist/
