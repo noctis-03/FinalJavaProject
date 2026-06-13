@@ -18,15 +18,10 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * 캘린더 페이지 전체 레이아웃 (FR-01, FR-02, FR-12).
- *
- * <p>좌측: {@link PresetBlockPanel} (미리블록)
- * <p>우측: 상단 툴바 + 중앙 {@link CalendarGridPanel}(위) / {@link CalendarAutomationPanel}(아래, 자동화 창)
- */
 public class CalendarPagePanel extends JPanel {
 
     private static final Color TOOLBAR_BG = new Color(0xFFFFFF);
@@ -44,9 +39,8 @@ public class CalendarPagePanel extends JPanel {
     public CalendarPagePanel() {
         setLayout(new BorderLayout());
 
-        // 우측: 그리드(위) / 자동화 창(아래) 세로 분할
         JSplitPane rightSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, gridPanel, automationPanel);
-        rightSplit.setResizeWeight(0.72);     // 그리드가 더 크게
+        rightSplit.setResizeWeight(0.72);
         rightSplit.setDividerSize(6);
         rightSplit.setBorder(null);
 
@@ -93,7 +87,6 @@ public class CalendarPagePanel extends JPanel {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
-    // ===== 표시 갱신 =====
     public void updateDateLabel(String text)         { dateLabel.setText(text); }
     public void updateViewToggleLabel(ViewMode mode) {
         viewToggle.setText(mode == ViewMode.WEEK ? "월간 보기" : "주간 보기");
@@ -105,23 +98,26 @@ public class CalendarPagePanel extends JPanel {
     public void refresh(List<ScheduleBlock> blocks)     { gridPanel.refresh(blocks); }
     public void setPresets(List<PresetBlock> presets)   {
         presetPanel.setPresets(presets);
-        automationPanel.setPresets(presets); // 자동화 콤보도 같은 목록 사용
+        automationPanel.setPresets(presets);
     }
 
-    // ===== 캘린더 콜백 =====
     public void setOnPrev(Runnable r)      { prevButton.addActionListener(e -> r.run()); }
     public void setOnNext(Runnable r)      { nextButton.addActionListener(e -> r.run()); }
     public void setOnToday(Runnable r)     { todayButton.addActionListener(e -> r.run()); }
     public void setOnViewToggle(Runnable r){ viewToggle.addActionListener(e -> r.run()); }
     public void setOnBlockClick(Consumer<ScheduleBlock> cb) { gridPanel.setOnBlockClick(cb); }
+    public void setOnBlockDoubleClick(Consumer<ScheduleBlock> cb) { gridPanel.setOnBlockDoubleClick(cb); }
+    public void setOnBlockDelete(Consumer<ScheduleBlock> cb) { gridPanel.setOnBlockDelete(cb); }
+    public void setOnBlockMove(WeekViewPanel.BlockMoveListener cb) { gridPanel.setOnBlockMove(cb); }
+    public void setOnEmptySlotDoubleClick(Consumer<LocalDateTime> cb) {
+        gridPanel.setOnEmptySlotDoubleClick(cb);
+    }
     public void setOnDateClick(Consumer<LocalDate> cb)      { gridPanel.setOnDateClick(cb); }
 
-    // ===== 미리블록 콜백 =====
     public void setOnPresetCreate(Runnable r)               { presetPanel.setOnCreate(r); }
     public void setOnPresetPlace(Consumer<PresetBlock> cb)  { presetPanel.setOnPlace(cb); }
     public void setOnPresetDelete(Consumer<PresetBlock> cb) { presetPanel.setOnDelete(cb); }
 
-    // ===== 자동화 위임 =====
     public void setAutomationRules(List<CalendarAutomationRule> rules) {
         automationPanel.setRules(rules);
     }
