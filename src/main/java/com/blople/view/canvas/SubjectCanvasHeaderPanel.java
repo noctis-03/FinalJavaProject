@@ -1,11 +1,13 @@
 package com.blople.view.canvas;
 
+import com.blople.common.Constants;
 import com.blople.dnd.BlockDragSource;
 import com.blople.model.enums.BlockType;
 import com.blople.model.subject.Subject;
 import com.blople.view.calendar.BlockRenderer;
 
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
@@ -14,90 +16,167 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Insets;
+import java.awt.RenderingHints;
 
 /**
- * 무한 캔버스 상단 헤더 (FR-07, FR-08, FR-11).
+ * 무한 캔버스 상단 헤더.
  *
- * <p>좌측: 현재 과목 표시(색상 점 + 이름) — 탭 형태.
- * <p>우측: 블록 팔레트(메모/링크) — 캔버스로 드래그하여 생성.
+ * <p>좌측: 현재 선택된 과목 표시(컬러 닷 + 이름).
+ * <p>우측: 메모/링크 추가용 드래그 카드 + 캔버스 액션 버튼(중심으로 / 비우기).
  */
 public class SubjectCanvasHeaderPanel extends JPanel {
 
-    private static final Color BG          = new Color(0xF7F7F9);
-    private static final Color TAB_BG      = new Color(0xFFFFFF);
-    private static final Color BORDER      = new Color(0xDDDDDD);
-    private static final Color TEXT_PALETTE = new Color(0xFFF3B0);
-    private static final Color LINK_PALETTE = new Color(0xEAF2FF);
+    private static final Color BG          = new Color(0xFAFAFC);
+    private static final Color BORDER      = new Color(0xE0E0E6);
+    private static final Color TEXT_PALETTE = new Color(0xFFF6C2); // 메모 카드 배경
+    private static final Color LINK_PALETTE = new Color(0xCFE3FF); // 링크 카드 배경
+    private static final Color DOT_DEFAULT  = new Color(0x4D96FF);
+    private static final Color TITLE_COLOR  = new Color(0x1F2937);
+    private static final Color MUTED        = new Color(0x6B7280);
 
-    private final JLabel dot       = new JLabel("●");
-    private final JLabel subjectName = new JLabel("과목을 선택하세요");
+    private final JLabel dotLabel     = new JLabel("●");
+    private final JLabel subjectLabel = new JLabel("과목을 선택하세요");
+
+    private final JButton recenterBtn = new JButton("⌂ 중심으로");
+    private final JButton clearBtn    = new JButton("🗑 캔버스 비우기");
+
+    private Runnable onRecenterClick;
+    private Runnable onClearCanvasClick;
 
     public SubjectCanvasHeaderPanel() {
         setLayout(new BorderLayout());
         setBackground(BG);
         setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
-        setPreferredSize(new Dimension(0, 48));
+        setPreferredSize(new Dimension(0, 56));
 
-        add(buildSubjectTab(), BorderLayout.WEST);
-        add(buildPalette(), BorderLayout.EAST);
+        add(buildLeft(),  BorderLayout.WEST);
+        add(buildRight(), BorderLayout.EAST);
     }
 
-    private JPanel buildSubjectTab() {
-        JPanel tab = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
-        tab.setBackground(TAB_BG);
-        tab.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER),
-                BorderFactory.createEmptyBorder(2, 12, 2, 16)));
+    private JPanel buildLeft() {
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
+        left.setOpaque(false);
 
-        dot.setForeground(new Color(0xBBBBBB));
-        subjectName.setFont(new Font("SansSerif", Font.BOLD, 14));
-        subjectName.setForeground(new Color(0x999999));
+        dotLabel.setForeground(DOT_DEFAULT);
+        dotLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
 
-        tab.add(dot);
-        tab.add(subjectName);
-        return tab;
+        subjectLabel.setForeground(TITLE_COLOR);
+        subjectLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+
+        left.add(dotLabel);
+        left.add(subjectLabel);
+        return left;
     }
 
-    private JPanel buildPalette() {
-        JPanel palette = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
-        palette.setOpaque(false);
+    private JPanel buildRight() {
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 12));
+        right.setOpaque(false);
 
-        JPanel memoCard = buildPaletteCard("📝 메모", TEXT_PALETTE, BlockType.TEXT);
-        JPanel linkCard = buildPaletteCard("🔗 링크", LINK_PALETTE, BlockType.LINK);
+        right.add(buildPaletteCard("📝 메모", TEXT_PALETTE, BlockType.TEXT));
+        right.add(buildPaletteCard("🔗 링크", LINK_PALETTE, BlockType.LINK));
 
-        palette.add(new JLabel("끌어서 추가:"));
-        palette.add(memoCard);
-        palette.add(linkCard);
-        return palette;
+        right.add(buildDivider());
+
+        styleActionButton(recenterBtn);
+        recenterBtn.setToolTipText("캔버스 화면을 (0,0) 중심으로 되돌립니다");
+        recenterBtn.addActionListener(e -> {
+            if (onRecenterClick != null) onRecenterClick.run();
+        });
+
+        styleActionButton(clearBtn);
+        clearBtn.setToolTipText("이 과목의 캔버스 배치를 모두 비웁니다");
+        clearBtn.addActionListener(e -> {
+            if (onClearCanvasClick != null) onClearCanvasClick.run();
+        });
+
+        right.add(recenterBtn);
+        right.add(clearBtn);
+        return right;
     }
 
-    private JPanel buildPaletteCard(String text, Color bg, BlockType type) {
-        JPanel card = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
-        card.setBackground(bg);
-        card.setBorder(BorderFactory.createLineBorder(new Color(0xCCCCCC)));
-        card.setPreferredSize(new Dimension(80, 32));
-        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    private JPanel buildDivider() {
+        JPanel d = new JPanel();
+        d.setPreferredSize(new Dimension(1, 24));
+        d.setBackground(new Color(0xE0E0E6));
+        return d;
+    }
 
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        card.add(label);
+    private JPanel buildPaletteCard(String label, Color bg, BlockType type) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(new Color(0, 0, 0, 18));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new FlowLayout(FlowLayout.CENTER, 6, 4));
+        card.setPreferredSize(new Dimension(78, 32));
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+        card.setToolTipText("캔버스로 드래그하여 " + (type == BlockType.TEXT ? "메모" : "링크") + " 블록을 만듭니다");
 
-        // 팔레트 드래그 — 종류만 운반(id 는 더미). 드롭 측은 BlockType 만 사용.
-        new BlockDragSource(card, () -> "palette", type);
+        JLabel l = new JLabel(label);
+        l.setFont(new Font("SansSerif", Font.BOLD, 12));
+        l.setForeground(new Color(0x374151));
+        card.add(l);
 
+        // 헤더 카드도 드래그 소스로 — block_id 는 빈 문자열(=새 블록 생성)로 보낸다.
+        new BlockDragSource(card, () -> "", type);
+        new BlockDragSource(l, () -> "", type);
         return card;
     }
 
-    /** 과목 선택 시 호출 — 헤더의 과목 표시 갱신. */
+    private void styleActionButton(JButton b) {
+        b.setFocusPainted(false);
+        b.setFocusable(false);
+        b.setOpaque(true);
+        b.setBackground(Color.WHITE);
+        b.setForeground(new Color(0x334155));
+        b.setFont(new Font("SansSerif", Font.BOLD, 12));
+        b.setMargin(new Insets(0, 0, 0, 0));
+        b.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xD6E0EE), 1),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
+    /** 헤더에 현재 선택된 과목을 표시 (없으면 null). */
     public void showSubject(Subject subject) {
         if (subject == null) {
-            dot.setForeground(new Color(0xBBBBBB));
-            subjectName.setText("과목을 선택하세요");
-            subjectName.setForeground(new Color(0x999999));
+            dotLabel.setForeground(DOT_DEFAULT);
+            subjectLabel.setText("과목을 선택하세요");
+            subjectLabel.setForeground(MUTED);
             return;
         }
-        dot.setForeground(BlockRenderer.parseColor(subject.getColor(), new Color(0x4D96FF)));
-        subjectName.setText(subject.getName());
-        subjectName.setForeground(new Color(0x333333));
+        Color c = BlockRenderer.parseColor(subject.getColor(), DOT_DEFAULT);
+        dotLabel.setForeground(c);
+        subjectLabel.setText(subject.getName());
+        subjectLabel.setForeground(TITLE_COLOR);
+    }
+
+    /** 캔버스 "중심으로" 버튼 콜백. */
+    public void setOnRecenterClick(Runnable cb) {
+        this.onRecenterClick = cb;
+    }
+
+    /** 캔버스 "비우기" 버튼 콜백. */
+    public void setOnClearCanvasClick(Runnable cb) {
+        this.onClearCanvasClick = cb;
+    }
+
+    /** Constants 사용 보장용 (팔레트 변경 시 자동 import 유지). */
+    @SuppressWarnings("unused")
+    private static int paletteSize() {
+        return Constants.BLOCK_COLOR_PALETTE.length;
     }
 }
