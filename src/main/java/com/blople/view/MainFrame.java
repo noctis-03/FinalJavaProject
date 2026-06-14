@@ -34,21 +34,19 @@ import com.blople.view.calendar.CalendarPagePanel;
 import com.blople.view.subject.SubjectPagePanel;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 
-/**
- * 메인 윈도우 프레임.
- * 상단 NavigationPanel + 캘린더/과목 페이지를 CardLayout 으로 전환한다.
- *
- * <p>v0.6 무한 캔버스 / v0.7 과목·캘린더 자동화.
- */
 public class MainFrame extends JFrame {
 
     public static final String CARD_CALENDAR = "CALENDAR";
     public static final String CARD_SUBJECT  = "SUBJECT";
+
+    private final DatabaseManager dbManager;
 
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel contentPanel   = new JPanel(cardLayout);
@@ -62,6 +60,7 @@ public class MainFrame extends JFrame {
 
     public MainFrame(DatabaseManager dbManager) {
         super(Constants.APP_NAME + " v" + Constants.APP_VERSION);
+        this.dbManager = dbManager;
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(Constants.MAIN_WINDOW_WIDTH, Constants.MAIN_WINDOW_HEIGHT);
@@ -69,25 +68,21 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        // === 공용 인프라 ===
         TransactionManager tx        = new TransactionManager(dbManager);
         BlockDAO blockDAO            = new BlockDAO(dbManager);
         ScheduleBlockDAO scheduleDAO = new ScheduleBlockDAO(dbManager, blockDAO, tx);
 
-        // === 캘린더 + 미리블록 ===
         CalendarModel model         = new CalendarModel();
         CalendarService calendarSvc = new CalendarService(model, scheduleDAO);
 
         PresetBlockDAO     presetDAO = new PresetBlockDAO(dbManager, blockDAO, tx);
         PresetBlockService presetSvc = new PresetBlockService(presetDAO, calendarSvc);
 
-        // === 캘린더 자동화 (FR-12) ===
-        ExecutionLogDAO         executionLogDAO       = new ExecutionLogDAO(dbManager);
-        CalendarAutomationDAO   calAutomationDAO      = new CalendarAutomationDAO(dbManager, tx);
-        CalendarAutomationService calAutomationSvc    = new CalendarAutomationService(
+        ExecutionLogDAO         executionLogDAO     = new ExecutionLogDAO(dbManager);
+        CalendarAutomationDAO   calAutomationDAO    = new CalendarAutomationDAO(dbManager, tx);
+        CalendarAutomationService calAutomationSvc  = new CalendarAutomationService(
                 calAutomationDAO, executionLogDAO, presetDAO, presetSvc);
 
-// === 외부 링크 ===
         com.blople.database.dao.ExternalLinkDAO externalLinkDAO =
                 new com.blople.database.dao.ExternalLinkDAO(dbManager);
         com.blople.service.ExternalLinkService externalLinkSvc =
@@ -98,8 +93,6 @@ public class MainFrame extends JFrame {
         calendarController = new CalendarController(
                 calendarSvc, presetSvc, calAutomationSvc, calendarPagePanel);
 
-
-        // === 과목 / 시간표 / 과제 / 파일 / 캔버스 / 자동화 ===
         SemesterDAO    semesterDAO    = new SemesterDAO(dbManager);
         SubjectDAO     subjectDAO     = new SubjectDAO(dbManager);
         TimetableDAO   timetableDAO   = new TimetableDAO(dbManager);
@@ -127,10 +120,10 @@ public class MainFrame extends JFrame {
                 subjectSvc, timetableSvc, assignmentSvc, fileBlockSvc,
                 canvasSvc, automationSvc, subjectPagePanel);
 
-        // === 네비게이션 ===
         navigationPanel = new NavigationPanel();
         navigationPanel.setOnCalendarTabClick(e -> showCalendarPage());
         navigationPanel.setOnSubjectTabClick (e -> showSubjectPage());
+        navigationPanel.setOnResetAppClick   (e -> onResetApp());
 
         contentPanel.add(calendarPagePanel, CARD_CALENDAR);
         contentPanel.add(subjectPagePanel,  CARD_SUBJECT);
@@ -152,5 +145,45 @@ public class MainFrame extends JFrame {
     public void showSubjectPage() {
         navigationPanel.setActiveTab(NavigationPanel.TAB_SUBJECT);
         cardLayout.show(contentPanel, CARD_SUBJECT);
+    }
+
+    /**
+     * 프로그램 전체 초기화 (요구 #6).
+     * 모든 사용자 데이터를 비우고 메인 프레임을 재시작한다.
+     */
+    private void onResetApp() {
+        int ok = JOptionPane.showConfirmDialog(this,
+                "정말로 모든 데이터를 초기화할까요?\n"
+                        + "학기/과목/시간표/과제/캔버스/자동화/외부 링크가 전부 삭제되며\n"
+                        + "이 작업은 되돌릴 수 없습니다.",
+                "프로그램 초기화", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (ok != JOptionPane.YES_OPTION) return;
+
+        // 한번 더 확인
+        int ok2 = JOptionPane.showConfirmDialog(this,
+                "최종 확인: 정말 진행하시겠습니까?",
+                "프로그램 초기화", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (ok2 != JOptionPane.YES_OPTION) return;
+
+        try {
+            dbManager.wipeAllData();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "초기화 실패: " + ex.getMessage(),
+                    "오류", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JOptionPane.showMessageDialog(this,
+                "초기화가 완료되었습니다.\n프로그램을 다시 시작합니다.",
+                "프로그램 초기화", JOptionPane.INFORMATION_MESSAGE);
+
+        // 현재 창 닫고 새 MainFrame 띄우기
+        navigationPanel.dispose();
+        dispose();
+        SwingUtilities.invokeLater(() -> {
+            MainFrame fresh = new MainFrame(dbManager);
+            fresh.setVisible(true);
+        });
     }
 }
