@@ -14,15 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * 무한 캔버스 서비스 (FR-05, FR-06, FR-07, FR-08).
- *
- * <p>텍스트/링크 블록은 캔버스에서 생성되며, 생성 시 canvas_state 도 함께 만든다.
- * 파일 블록은 좌측 트리에 존재하는 기존 블록을 드래그로 "배치" 하는 방식이라,
- * canvas_state 가 있는 파일만 캔버스에 표시한다(트리에는 항상 남는다).
- *
- * <p>블록 이동/리사이즈 시 canvas_state 를 갱신한다(NFR-018).
- */
 public class CanvasService {
 
     public static final double DEFAULT_W = 160;
@@ -81,7 +72,7 @@ public class CanvasService {
         textBlockDAO.update(t);
     }
 
-    // ===== 링크 블록 (FR-07) =====
+    // ===== 링크 블록 =====
     public List<Placed<LinkBlock>> loadLinkBlocks(String subjectId) {
         List<Placed<LinkBlock>> result = new ArrayList<>();
         for (LinkBlock l : linkBlockDAO.findBySubject(subjectId)) {
@@ -126,29 +117,18 @@ public class CanvasService {
         linkBlockDAO.update(l);
     }
 
-    // ===== 파일 블록 (FR-05 + FR-08) =====
-
-    /**
-     * 캔버스에 배치된 파일 블록만 로드.
-     * 파일 블록은 트리에 항상 존재하지만, canvas_state 가 있는 것만 캔버스에 그린다.
-     */
+    // ===== 파일 블록 =====
     public List<Placed<FileBlock>> loadFileBlocks(String subjectId) {
         List<Placed<FileBlock>> result = new ArrayList<>();
         for (FileBlock f : fileBlockDAO.findBySubject(subjectId)) {
             Optional<CanvasState> st = canvasStateDAO.findByBlock(f.getId());
-            if (st.isPresent()) {                 // 배치된 것만 캔버스에 표시
+            if (st.isPresent()) {
                 result.add(new Placed<>(f, st.get()));
             }
         }
         return result;
     }
 
-    /**
-     * 기존 파일 블록을 캔버스의 지정 위치에 배치.
-     * 이미 배치돼 있으면 위치만 갱신하고, 없으면 새 배치를 만든다(중복 방지).
-     *
-     * @return 배치 결과(블록 + 상태). 파일 블록이 존재하지 않으면 빈 Optional.
-     */
     public Optional<Placed<FileBlock>> placeFileBlock(String subjectId, String fileBlockId,
                                                       double worldX, double worldY) {
         Optional<FileBlock> opt = fileBlockDAO.findById(fileBlockId);
@@ -171,14 +151,10 @@ public class CanvasService {
         return Optional.of(new Placed<>(f, st));
     }
 
-    /** 이미 캔버스에 배치돼 있는지. (중복 컴포넌트 추가 방지용) */
     public boolean isFilePlaced(String fileBlockId) {
         return canvasStateDAO.findByBlock(fileBlockId).isPresent();
     }
 
-    /**
-     * 캔버스에서 파일 블록 "배치만" 제거. 파일 블록 자체(트리)는 남긴다.
-     */
     public void removeFilePlacement(String fileBlockId) {
         canvasStateDAO.deleteByBlock(fileBlockId);
         eventBus.publish(EventBus.SUBJECT_CHANGED, "canvas-file-removed");
@@ -205,6 +181,35 @@ public class CanvasService {
         eventBus.publish(EventBus.SUBJECT_CHANGED, "canvas-block-deleted");
     }
 
-    /** 블록 모델 + 배치 상태를 함께 들고 다니는 묶음. */
+    // ===== 신규: 과목 캔버스 전체 비우기 (요구 #4) =====
+    /**
+     * 한 과목 캔버스에 있는 텍스트/링크 블록은 완전히 삭제하고,
+     * 파일/실행(자동화) 블록은 "캔버스 배치(canvas_state)" 만 지워서 트리에는 그대로 남긴다.
+     * 자동화 규칙/블록 삭제는 호출자(컨트롤러)에서 AutomationService 와 함께 처리하도록 분리한다.
+     */
+    public void clearCanvasForSubject(String subjectId,
+                                      List<TextBlock> textBlocks,
+                                      List<LinkBlock> linkBlocks,
+                                      List<FileBlock> fileBlocks) {
+        if (textBlocks != null) {
+            for (TextBlock t : textBlocks) {
+                canvasStateDAO.deleteByBlock(t.getId());
+                textBlockDAO.deleteById(t.getId());
+            }
+        }
+        if (linkBlocks != null) {
+            for (LinkBlock l : linkBlocks) {
+                canvasStateDAO.deleteByBlock(l.getId());
+                linkBlockDAO.deleteById(l.getId());
+            }
+        }
+        if (fileBlocks != null) {
+            for (FileBlock f : fileBlocks) {
+                canvasStateDAO.deleteByBlock(f.getId());
+            }
+        }
+        eventBus.publish(EventBus.SUBJECT_CHANGED, "canvas-cleared:" + subjectId);
+    }
+
     public record Placed<T>(T block, CanvasState state) {}
 }
