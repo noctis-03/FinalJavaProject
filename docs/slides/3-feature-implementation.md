@@ -19,9 +19,9 @@ footer: '자바프로그래밍 | 20220540 김가온'
 ## 마일스톤 구성
 
 <style scoped>
-table { font-size: 0.78rem; width: 60%; margin: 0 auto; }
-table th:nth-child(1), table td:nth-child(1) { width: 25%; }
-table th:nth-child(2), table td:nth-child(2) { width: 75%; }
+table { font-size: 0.65rem; width: 35%; margin: 0 auto; }
+table th:nth-child(1), table td:nth-child(1) { width: 30%; }
+table th:nth-child(2), table td:nth-child(2) { width: 70%; }
 </style>
 
 | 버전 | 마일스톤 |
