@@ -105,10 +105,10 @@
 
 ### 1.8 마일스톤 v0.8 - 외부 API
 
-| 요구사항 번호 | 간단 설명 | 관련 소스 | 구현 여부 |
-|:---:|:---|:---|:---:|
-| FR-14 | 날씨 위젯 (Open-Meteo 사용, 대전 현재/내일 표시) | `service/WeatherService.java`, `view/NavigationPanel.java` | ☑ 완성 |
-| FR-15 | 대학 정보 블록 (외부 링크 즐겨찾기로 대체 구현 — 홈페이지/공지 등 빠른 접근) | `service/ExternalLinkService.java`, `view/calendar/ExternalLinkPanel.java`, `view/calendar/ExternalLinkEditDialog.java`, `model/ExternalLink.java` | ◇ 부분완성 |
+| 요구사항 번호 | 간단 설명                              | 관련 소스 | 구현 여부 |
+|:---:|:-----------------------------------|:---|:-----:|
+| FR-14 | 날씨 위젯 (Open-Meteo 사용, 대전 현재/내일 표시) | `service/WeatherService.java`, `view/NavigationPanel.java` | ☑ 완성  |
+| FR-15 | ~~대학 정보~~ -> 블록 외부 링크 즐겨찾기로 대체 구현 )    | `service/ExternalLinkService.java`, `view/calendar/ExternalLinkPanel.java`, `view/calendar/ExternalLinkEditDialog.java`, `model/ExternalLink.java` |  ☑ 완성   |
 
 
 <br>
