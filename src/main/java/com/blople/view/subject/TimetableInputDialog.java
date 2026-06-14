@@ -4,6 +4,7 @@ import com.blople.common.Constants;
 import com.blople.model.subject.Semester;
 import com.blople.model.subject.Subject;
 import com.blople.model.subject.Timetable;
+import com.blople.view.component.ColorPalettePicker;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
@@ -29,31 +30,22 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-/**
- * 시간표 입력 다이얼로그 (FR-09 + 요구 #2, #7).
- *
- * <p>학기 선택(연도/1·2학기), 시간표 추가, 그리고 등록된 항목에 대해
- * "수정"·"삭제" 가 가능하다.
- */
 public class TimetableInputDialog extends JDialog {
 
     private static final String[] DAYS = {"일", "월", "화", "수", "목", "금", "토"};
 
-    // 학기 선택
     private final JComboBox<Integer> yearCombo = new JComboBox<>();
     private final JComboBox<Semester.Term> termCombo =
             new JComboBox<>(new Semester.Term[]{Semester.Term.FIRST, Semester.Term.SECOND});
 
-    // 입력 폼
     private final JTextField subjectField   = new JTextField(12);
     private final JTextField professorField = new JTextField(10);
     private final JTextField classroomField = new JTextField(10);
-    private final JComboBox<String> colorCombo = new JComboBox<>();
+    private final ColorPalettePicker colorPicker = new ColorPalettePicker(Constants.DEFAULT_BLOCK_COLOR_HEX);
     private final JComboBox<String> dayCombo   = new JComboBox<>(DAYS);
     private final JComboBox<String> startCombo = new JComboBox<>(buildTimeOptions());
     private final JComboBox<String> endCombo   = new JComboBox<>(buildTimeOptions());
 
-    // 목록
     private final DefaultListModel<EntryRow> listModel = new DefaultListModel<>();
     private final JList<EntryRow> entryList = new JList<>(listModel);
 
@@ -61,22 +53,17 @@ public class TimetableInputDialog extends JDialog {
                                 String colorHex, int dayOfWeek,
                                 String startTime, String endTime) {}
 
-    /** 학기 변경 콜백 — 컨트롤러가 학기 보장/전환 후 목록을 새로 채워야 한다. */
     public interface SemesterChangeListener {
         void onSemesterChange(int year, Semester.Term term);
     }
 
-    /** 항목 수정 콜백. */
     public interface EntryEditListener {
-        /** 시간만 바뀌면 timetableEntryId, 과목 정보 일부 바뀌면 subjectId 도 변경됨. */
         void onEdit(String timetableEntryId, String subjectId,
                     String subjectName, String professor, String classroom, String colorHex,
                     int dayOfWeek, String startTime, String endTime);
     }
 
-    /** 항목 삭제 콜백. true 반환 시 목록에서 제거. */
     public interface EntryDeleteListener {
-        /** @param alsoDeleteSubject 같은 과목의 마지막 시간표라면 과목까지 삭제할지 */
         boolean onDelete(String timetableEntryId, String subjectId, boolean alsoDeleteSubject);
     }
 
@@ -85,7 +72,6 @@ public class TimetableInputDialog extends JDialog {
     private EntryEditListener onEntryEdit;
     private EntryDeleteListener onEntryDelete;
 
-    /** 화면 표시용 행. */
     public static class EntryRow {
         public final String entryId;
         public final String subjectId;
@@ -152,10 +138,13 @@ public class TimetableInputDialog extends JDialog {
     public int getSelectedYear()           { return (Integer) yearCombo.getSelectedItem(); }
     public Semester.Term getSelectedTerm() { return (Semester.Term) termCombo.getSelectedItem(); }
 
-    /** 초기 학기 선택값을 외부에서 강제(이벤트 발생 없이). */
     public void setSemesterSelection(int year, Semester.Term term) {
-        yearCombo.removeActionListener(yearCombo.getActionListeners()[0]);
-        termCombo.removeActionListener(termCombo.getActionListeners()[0]);
+        if (yearCombo.getActionListeners().length > 0) {
+            yearCombo.removeActionListener(yearCombo.getActionListeners()[0]);
+        }
+        if (termCombo.getActionListeners().length > 0) {
+            termCombo.removeActionListener(termCombo.getActionListeners()[0]);
+        }
         yearCombo.setSelectedItem(year);
         termCombo.setSelectedItem(term);
         yearCombo.addActionListener(e -> fireSemesterChange());
@@ -194,15 +183,11 @@ public class TimetableInputDialog extends JDialog {
         c.insets = new Insets(4, 4, 4, 4);
         c.anchor = GridBagConstraints.WEST;
 
-        for (var color : Constants.BLOCK_COLOR_PALETTE) {
-            colorCombo.addItem(String.format("#%06X", color.getRGB() & 0xFFFFFF));
-        }
-
         int row = 0;
         addRow(p, c, row++, "과목명",  subjectField);
         addRow(p, c, row++, "교수명",  professorField);
         addRow(p, c, row++, "강의실",  classroomField);
-        addRow(p, c, row++, "색상",    colorCombo);
+        addRow(p, c, row++, "색상",    colorPicker);
         addRow(p, c, row++, "요일",    dayCombo);
         addRow(p, c, row++, "시작",    startCombo);
         addRow(p, c, row++, "종료",    endCombo);
@@ -269,7 +254,7 @@ public class TimetableInputDialog extends JDialog {
                 name,
                 professorField.getText().trim(),
                 classroomField.getText().trim(),
-                (String) colorCombo.getSelectedItem(),
+                colorPicker.getSelectedHex(),
                 dayCombo.getSelectedIndex(),
                 start, end);
 
@@ -302,11 +287,11 @@ public class TimetableInputDialog extends JDialog {
             return;
         }
 
-        // 같은 subjectId 항목이 1개뿐이면 과목까지 지울지 물어본다
         long sameSubjectCount = 0;
         for (int i = 0; i < listModel.size(); i++) {
             if (listModel.get(i).subjectId.equals(row.subjectId)) sameSubjectCount++;
         }
+
         boolean alsoDeleteSubject = false;
         if (sameSubjectCount == 1) {
             int ans = JOptionPane.showConfirmDialog(this,
@@ -329,7 +314,6 @@ public class TimetableInputDialog extends JDialog {
         }
     }
 
-    /** 학기 변경 또는 추가 직후 컨트롤러가 호출 — 목록을 통째로 갈아끼움. */
     public void setEntries(List<Timetable> entries, Function<String, Subject> subjectResolver) {
         listModel.clear();
         for (Timetable t : entries) {
@@ -337,19 +321,19 @@ public class TimetableInputDialog extends JDialog {
             String name = (s != null) ? s.getName() : t.getSubjectId();
             String prof = (s != null) ? s.getProfessor() : "";
             String room = (s != null) ? s.getClassroom() : "";
-            String color = (s != null) ? s.getColor() : "#4D96FF";
+            String color = (s != null) ? s.getColor() : Constants.DEFAULT_BLOCK_COLOR_HEX;
             listModel.addElement(new EntryRow(
                     t.getId(), t.getSubjectId(), name, prof, room, color,
                     t.getDayOfWeek(), t.getStartTime(), t.getEndTime()));
         }
     }
 
-    /** 컨트롤러가 추가 성공 후 호출 — 폼 비우고 한 줄 누적. */
     public void appendEntry(EntryRow row) {
         listModel.addElement(row);
         subjectField.setText("");
         professorField.setText("");
         classroomField.setText("");
+        colorPicker.setSelectedHex(Constants.DEFAULT_BLOCK_COLOR_HEX);
     }
 
     public static String formatLine(String subjectName, int dayOfWeek, String start, String end) {
@@ -365,9 +349,6 @@ public class TimetableInputDialog extends JDialog {
         return list.toArray(new String[0]);
     }
 
-    // ============================================================
-    //  내부 수정 다이얼로그
-    // ============================================================
     private static class EntryEditDialog extends JDialog {
         public record UpdatedForm(String subjectName, String professor, String classroom, String colorHex,
                                   int dayOfWeek, String startTime, String endTime) {}
@@ -375,7 +356,7 @@ public class TimetableInputDialog extends JDialog {
         private final JTextField nameF;
         private final JTextField profF;
         private final JTextField roomF;
-        private final JComboBox<String> colorC = new JComboBox<>();
+        private final ColorPalettePicker colorPicker;
         private final JComboBox<String> dayC   = new JComboBox<>(DAYS);
         private final JComboBox<String> startC = new JComboBox<>(buildTimeOptions());
         private final JComboBox<String> endC   = new JComboBox<>(buildTimeOptions());
@@ -387,14 +368,11 @@ public class TimetableInputDialog extends JDialog {
             setLocationRelativeTo(owner);
             setLayout(new BorderLayout(0, 8));
 
-            for (var color : Constants.BLOCK_COLOR_PALETTE) {
-                colorC.addItem(String.format("#%06X", color.getRGB() & 0xFFFFFF));
-            }
-            if (row.colorHex != null) colorC.setSelectedItem(row.colorHex.toUpperCase());
-
             nameF = new JTextField(row.subjectName, 14);
             profF = new JTextField(row.professor == null ? "" : row.professor, 14);
             roomF = new JTextField(row.classroom == null ? "" : row.classroom, 14);
+            colorPicker = new ColorPalettePicker(
+                    row.colorHex == null ? Constants.DEFAULT_BLOCK_COLOR_HEX : row.colorHex);
             dayC.setSelectedIndex(row.dayOfWeek);
             startC.setSelectedItem(row.startTime);
             endC.setSelectedItem(row.endTime);
@@ -408,7 +386,7 @@ public class TimetableInputDialog extends JDialog {
             addRow(p, c, r++, "과목명", nameF);
             addRow(p, c, r++, "교수명", profF);
             addRow(p, c, r++, "강의실", roomF);
-            addRow(p, c, r++, "색상",  colorC);
+            addRow(p, c, r++, "색상",  colorPicker);
             addRow(p, c, r++, "요일",  dayC);
             addRow(p, c, r++, "시작",  startC);
             addRow(p, c, r++, "종료",  endC);
@@ -433,9 +411,15 @@ public class TimetableInputDialog extends JDialog {
                     return;
                 }
                 if (onSave != null) {
-                    onSave.accept(new UpdatedForm(n, profF.getText().trim(), roomF.getText().trim(),
-                            (String) colorC.getSelectedItem(),
-                            dayC.getSelectedIndex(), st, et));
+                    onSave.accept(new UpdatedForm(
+                            n,
+                            profF.getText().trim(),
+                            roomF.getText().trim(),
+                            colorPicker.getSelectedHex(),
+                            dayC.getSelectedIndex(),
+                            st,
+                            et
+                    ));
                 }
                 dispose();
             });
