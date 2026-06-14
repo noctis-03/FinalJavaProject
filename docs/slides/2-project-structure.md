@@ -12,7 +12,7 @@ footer: '자바프로그래밍 | 20220540 김가온'
 
 # 5. 디렉터리 구조
 
-📎 [디렉터리 구조 관련 문서 바로가기](https://github.com/noctis-03/FinalJavaProject/blob/master/docs/1-requirement-analysis.md)
+📎 [디렉터리 구조 관련 문서 바로가기](https://github.com/noctis-03/FinalJavaProject/blob/master/docs/2-project-structure.md)
 
 ---
 
