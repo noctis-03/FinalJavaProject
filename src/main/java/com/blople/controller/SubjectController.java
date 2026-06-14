@@ -146,27 +146,46 @@ public class SubjectController {
 
         for (CanvasService.Placed<TextBlock> p : canvasService.loadTextBlocks(subject.getId())) {
             CanvasState st = p.state();
-            comps.add(new TextBlockComponent(p.block(),
-                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+            TextBlockComponent tc = new TextBlockComponent(p.block(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight());
+            applyPriorityFromState(tc, st);
+            comps.add(tc);
         }
         for (CanvasService.Placed<LinkBlock> p : canvasService.loadLinkBlocks(subject.getId())) {
             CanvasState st = p.state();
-            comps.add(new LinkBlockComponent(p.block(),
-                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+            LinkBlockComponent lc = new LinkBlockComponent(p.block(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight());
+            applyPriorityFromState(lc, st);
+            comps.add(lc);
         }
         for (CanvasService.Placed<FileBlock> p : canvasService.loadFileBlocks(subject.getId())) {
             CanvasState st = p.state();
-            comps.add(new FileBlockComponent(p.block(),
-                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+            FileBlockComponent fc = new FileBlockComponent(p.block(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight());
+            applyPriorityFromState(fc, st);
+            comps.add(fc);
         }
         for (AutomationService.Placed p : automationService.loadAutomationBlocks(subject.getId())) {
             CanvasState st = p.state();
-            comps.add(new AutomationBlockComponent(p.block(), p.rule(),
-                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
+            AutomationBlockComponent ac = new AutomationBlockComponent(p.block(), p.rule(),
+                    st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight());
+            applyPriorityFromState(ac, st);
+            comps.add(ac);
         }
 
         canvas.setBlocks(comps);
     }
+
+    private static void applyPriorityFromState(CanvasBlockComponent comp, CanvasState st) {
+        int z = st.getZOrder();
+        // zOrder 가 1~3 범위면 그대로 우선순위로 사용, 그 외(기존 데이터=0 등)는 기본값 2
+        if (z >= CanvasBlockComponent.PRIORITY_MIN && z <= CanvasBlockComponent.PRIORITY_MAX) {
+            comp.setPriority(z);
+        } else {
+            comp.setPriority(CanvasBlockComponent.PRIORITY_DEFAULT);
+        }
+    }
+
 
     private void refreshExpanded() {
         if (selectedSubject != null) view.reloadExpandedSubject(selectedSubject);
@@ -613,6 +632,7 @@ public class SubjectController {
                     existing.setPosY(comp.getWorldY());
                     existing.setWidth(comp.getWorldW());
                     existing.setHeight(comp.getWorldH());
+                    existing.setZOrder(comp.getPriority());
                     canvasService.saveState(existing);
                 },
                 () -> {
@@ -620,9 +640,11 @@ public class SubjectController {
                             selectedSubject.getId(), comp.getBlockId(),
                             comp.getWorldX(), comp.getWorldY(),
                             comp.getWorldW(), comp.getWorldH());
+                    fresh.setZOrder(comp.getPriority());
                     canvasService.saveState(fresh);
                 });
     }
+
 
     private void onCanvasDeleteBlock(CanvasBlockComponent comp) {
         Window owner = SwingUtilities.getWindowAncestor(view);

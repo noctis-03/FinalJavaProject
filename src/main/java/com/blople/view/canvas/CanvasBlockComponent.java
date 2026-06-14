@@ -9,32 +9,24 @@ import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 
-/**
- * 무한 캔버스 위에 놓이는 블록 한 개의 렌더링·히트 단위 (FR-08).
- *
- * <p>위치/크기는 <b>world 좌표</b>로 가지며, 그릴 때 {@link CanvasViewport} 로
- * screen 좌표로 변환된다. 구체 블록은 본 클래스를 상속해
- * {@link #paintBody}/{@link #titleText} 만 다르게 구현한다.
- *
- * <p>노드 그래프 연결 대상이 되는 블록(파일/링크)은 {@link #hasInputPort()} 를
- * true 로 오버라이드한다. 입력 포트(좌측 ●)는 실행 블록의 포트를 드래그하는
- * 동안에만 패널이 표시한다.
- */
 public abstract class CanvasBlockComponent {
 
-    /** 리사이즈 핸들 크기(screen px). */
     public static final int HANDLE = 8;
-
-    /** 입력 포트 반지름(screen px) — 작게. */
     public static final int IN_PORT_R = 5;
-
-    /** 블록 최소 world 크기. */
     public static final double MIN_W = 60;
     public static final double MIN_H = 44;
+
+    /** 우선순위 1(가장 위), 2, 3(가장 아래). 기본 2. */
+    public static final int PRIORITY_DEFAULT = 2;
+    public static final int PRIORITY_MIN = 1;
+    public static final int PRIORITY_MAX = 3;
 
     protected final String blockId;
     protected double worldX, worldY, worldW, worldH;
     protected boolean selected;
+
+    /** 1=가장 위, 3=가장 아래. */
+    protected int priority = PRIORITY_DEFAULT;
 
     protected CanvasBlockComponent(String blockId,
                                    double worldX, double worldY,
@@ -62,22 +54,21 @@ public abstract class CanvasBlockComponent {
     public boolean isSelected()              { return selected; }
     public void setSelected(boolean sel)     { this.selected = sel; }
 
-    /** 블록의 배경색(구체 클래스가 제공). */
+    public int getPriority() { return priority; }
+    public void setPriority(int p) {
+        this.priority = Math.max(PRIORITY_MIN, Math.min(PRIORITY_MAX, p));
+    }
+
     protected abstract Color bodyColor();
-    /** 제목/요약 텍스트(구체 클래스가 제공). */
     protected abstract String titleText();
-    /** 본문 추가 렌더링(선택적). 기본은 없음. */
     protected void paintBody(Graphics2D g2, int sx, int sy, int sw, int sh) { }
 
-    /** 노드 그래프 연결의 입력(수신) 포트를 가지는지. 기본 false. */
     public boolean hasInputPort() { return false; }
 
-    /** 입력 포트 중심의 screen 좌표 (좌측 가운데). */
     public Point inputPortCenterScreen(CanvasViewport vp) {
         return vp.worldToScreen(worldX, worldY + worldH / 2);
     }
 
-    // ===== 히트 판정 (screen 좌표 기준) =====
     public boolean contains(CanvasViewport vp, int px, int py) {
         Rectangle2D r = screenRect(vp);
         return r.contains(px, py);
@@ -95,7 +86,6 @@ public abstract class CanvasBlockComponent {
         return new Rectangle2D.Double(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
     }
 
-    // ===== 렌더링 =====
     public void paint(Graphics2D g, CanvasViewport vp) {
         Point tl = vp.worldToScreen(worldX, worldY);
         Point br = vp.worldToScreen(worldX + worldW, worldY + worldH);
@@ -106,20 +96,16 @@ public abstract class CanvasBlockComponent {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // 몸체
         g2.setColor(bodyColor());
         g2.fillRoundRect(sx, sy, sw, sh, 10, 10);
 
-        // 테두리
         g2.setColor(selected ? new Color(0x4D96FF) : new Color(0xCCCCCC));
         g2.setStroke(new java.awt.BasicStroke(selected ? 2f : 1f));
         g2.drawRoundRect(sx, sy, sw, sh, 10, 10);
 
-        // 본체 영역 밖으로 글자가 나가지 않도록 클립을 건다 (작게 줄였을 때 보호)
         Shape oldClip = g2.getClip();
         g2.clip(new RoundRectangle2D.Float(sx, sy, sw, sh, 10, 10));
 
-        // 제목 — 높이가 너무 낮으면 생략
         if (sh >= 18) {
             g2.setColor(new Color(0x333333));
             g2.setFont(new Font("SansSerif", Font.BOLD, 12));
@@ -127,12 +113,10 @@ public abstract class CanvasBlockComponent {
             g2.drawString(title, sx + 6, sy + 16);
         }
 
-        // 본문(구체 클래스) — 클립 안에서만 그려짐
         paintBody(g2, sx, sy, sw, sh);
 
         g2.setClip(oldClip);
 
-        // 선택 시 리사이즈 핸들 (클립 밖에서 그려 항상 보이게)
         if (selected) {
             g2.setColor(new Color(0x4D96FF));
             g2.fillRect(br.x - HANDLE, br.y - HANDLE, HANDLE, HANDLE);
@@ -141,10 +125,6 @@ public abstract class CanvasBlockComponent {
         g2.dispose();
     }
 
-    /**
-     * 입력 포트(좌측 가운데 동그라미)를 그린다.
-     * @param visible 패널이 "지금 포트를 보여줄 때"만 true (포트 드래그 중)
-     */
     public void paintInputPort(Graphics2D g2, CanvasViewport vp, boolean visible) {
         if (!hasInputPort() || !visible) return;
         Point c = inputPortCenterScreen(vp);
