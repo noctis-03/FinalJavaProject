@@ -2,10 +2,10 @@ package com.blople.view.calendar;
 
 import com.blople.common.Constants;
 import com.blople.model.block.ScheduleBlock;
+import com.blople.view.component.ColorPalettePicker;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -26,10 +26,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.function.Consumer;
 
-/**
- * 일정 블록 편집 다이얼로그 (요구 #4, #5).
- * 이름/색상/시작/종료를 수정하거나, "삭제" 버튼으로 일정을 삭제할 수 있다.
- */
 public class ScheduleBlockEditDialog extends JDialog {
 
     public static final DateTimeFormatter TS_FMT = ScheduleBlock.TS_FORMATTER;
@@ -37,7 +33,7 @@ public class ScheduleBlockEditDialog extends JDialog {
     public record Form(String name, String colorHex, String startDatetime, String endDatetime) {}
 
     private final JTextField nameField = new JTextField(14);
-    private final JComboBox<String> colorCombo = new JComboBox<>();
+    private final ColorPalettePicker colorPicker;
     private final JSpinner startSpinner;
     private final JSpinner endSpinner;
 
@@ -46,18 +42,13 @@ public class ScheduleBlockEditDialog extends JDialog {
 
     public ScheduleBlockEditDialog(Window owner, ScheduleBlock block) {
         super(owner, "일정 편집", ModalityType.APPLICATION_MODAL);
-        setSize(380, 320);
+        setSize(420, 340);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(0, 8));
 
         nameField.setText(block.getName() == null ? "" : block.getName());
-
-        for (var color : Constants.BLOCK_COLOR_PALETTE) {
-            colorCombo.addItem(String.format("#%06X", color.getRGB() & 0xFFFFFF));
-        }
-        if (block.getColor() != null) {
-            colorCombo.setSelectedItem(block.getColor().toUpperCase());
-        }
+        colorPicker = new ColorPalettePicker(
+                block.getColor() == null ? Constants.DEFAULT_BLOCK_COLOR_HEX : block.getColor());
 
         LocalDateTime s = LocalDateTime.parse(block.getStartDatetime(), TS_FMT);
         LocalDateTime e = LocalDateTime.parse(block.getEndDatetime(), TS_FMT);
@@ -68,8 +59,8 @@ public class ScheduleBlockEditDialog extends JDialog {
         add(buildButtons(), BorderLayout.SOUTH);
     }
 
-    public void setOnSave(Consumer<Form> cb)   { this.onSave = cb; }
-    public void setOnDelete(Runnable cb)       { this.onDelete = cb; }
+    public void setOnSave(Consumer<Form> cb) { this.onSave = cb; }
+    public void setOnDelete(Runnable cb)     { this.onDelete = cb; }
 
     private JSpinner makeDateSpinner(LocalDateTime dt) {
         Calendar cal = Calendar.getInstance();
@@ -90,7 +81,7 @@ public class ScheduleBlockEditDialog extends JDialog {
 
         int row = 0;
         addRow(p, c, row++, "일정명", nameField);
-        addRow(p, c, row++, "색상", colorCombo);
+        addRow(p, c, row++, "색상", colorPicker);
         addRow(p, c, row++, "시작", startSpinner);
         addRow(p, c, row++, "종료", endSpinner);
         return p;
@@ -146,7 +137,8 @@ public class ScheduleBlockEditDialog extends JDialog {
                     "입력 오류", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        Form form = new Form(name, (String) colorCombo.getSelectedItem(),
+
+        Form form = new Form(name, colorPicker.getSelectedHex(),
                 s.format(TS_FMT), e.format(TS_FMT));
         if (onSave != null) onSave.accept(form);
         dispose();
