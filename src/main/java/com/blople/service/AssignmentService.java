@@ -16,21 +16,22 @@ import java.util.Optional;
 /**
  * 과제 관리 서비스 (FR-04, FR-10).
  *
- * <p>책임:
+ * <p>v0.8 변경:
  * <ul>
- *   <li>과제 블록 CRUD (block + assignment)</li>
- *   <li>마감일 → 캘린더 마감 표시 일정 블록 자동 생성/갱신/삭제 (SYS-01)</li>
- *   <li>마감 임박/지난 과제 조회</li>
+ *   <li>마감 표시(ScheduleBlock)의 길이를 30분 → 1분으로 단축.
+ *       23:59 마감 시 다음 날까지 블록이 걸쳐 표시되던 버그를 해결한다.</li>
+ *   <li>일정 블록의 memo 에 {@code [ASSIGNMENT_DEADLINE:과제blockId]} 표식이 있으면
+ *       "과제 마감 표시"로 식별 가능 → MonthViewPanel 의 과목 일정 필터링에 사용한다.</li>
  * </ul>
- *
- * <p>마감 표시는 deadline 시각에 시작하는 짧은 일정 블록으로 표현하며,
- * memo 에 "[ASSIGNMENT_DEADLINE:과제blockId]" 표식을 넣어 추적한다.
  */
 public class AssignmentService {
 
     public static final DateTimeFormatter TS_FMT = ScheduleBlock.TS_FORMATTER;
-    private static final String DEADLINE_TAG_PREFIX = "[ASSIGNMENT_DEADLINE:";
-    private static final int DEADLINE_MARK_MINUTES = 30;
+    public  static final String DEADLINE_TAG_PREFIX = "[ASSIGNMENT_DEADLINE:";
+    public  static final String DEADLINE_TAG_SUFFIX = "]";
+
+    /** 캘린더 위 "마감 표시" 블록의 길이(분). 너무 길면 다음 날로 넘쳐 표시되므로 1분으로 짧게 둔다. */
+    private static final int DEADLINE_MARK_MINUTES = 1;
 
     private final AssignmentDAO assignmentDAO;
     private final ScheduleBlockDAO scheduleBlockDAO;
@@ -39,6 +40,13 @@ public class AssignmentService {
     public AssignmentService(AssignmentDAO assignmentDAO, ScheduleBlockDAO scheduleBlockDAO) {
         this.assignmentDAO = assignmentDAO;
         this.scheduleBlockDAO = scheduleBlockDAO;
+    }
+
+    /** memo 가 과제 마감 표시 태그를 가지고 있는지. */
+    public static boolean isDeadlineMark(ScheduleBlock b) {
+        if (b == null) return false;
+        String memo = b.getMemo();
+        return memo != null && memo.startsWith(DEADLINE_TAG_PREFIX) && memo.endsWith(DEADLINE_TAG_SUFFIX);
     }
 
     // ===== 조회 =====
@@ -57,7 +65,6 @@ public class AssignmentService {
             throw new IllegalArgumentException("과제명을 입력해주세요.");
         if (deadline == null || deadline.isBlank())
             throw new IllegalArgumentException("마감일을 설정해주세요.");
-        // 형식 검증
         LocalDateTime.parse(deadline, TS_FMT);
 
         AssignmentBlock a = new AssignmentBlock(subjectId, name, color, deadline);
@@ -98,19 +105,29 @@ public class AssignmentService {
     // ===== 마감일 ↔ 캘린더 연동 (SYS-01) =====
     private void syncDeadlineToCalendar(AssignmentBlock a) {
         LocalDateTime dl = LocalDateTime.parse(a.getDeadline(), TS_FMT);
+        LocalDateTime endDl = dl.plusMinutes(DEADLINE_MARK_MINUTES);
+
+        // 안전망: 종료가 다음 날로 넘어가면, 같은 날의 23:59 로 클램프.
+        if (!endDl.toLocalDate().equals(dl.toLocalDate())) {
+            endDl = dl.toLocalDate().atTime(23, 59);
+            if (!endDl.isAfter(dl)) {
+                endDl = dl; // 시작과 같으면 0분 표시
+            }
+        }
+
         String start = dl.format(TS_FMT);
-        String end   = dl.plusMinutes(DEADLINE_MARK_MINUTES).format(TS_FMT);
+        String end   = endDl.format(TS_FMT);
 
         ScheduleBlock mark = new ScheduleBlock("📌 마감: " + a.getName(), a.getColor(), start, end);
         mark.setSubjectId(a.getSubjectId());
-        mark.setMemo(DEADLINE_TAG_PREFIX + a.getId() + "]");
+        mark.setMemo(DEADLINE_TAG_PREFIX + a.getId() + DEADLINE_TAG_SUFFIX);
         scheduleBlockDAO.insert(mark);
         eventBus.publish(EventBus.SCHEDULE_BLOCK_CREATED, mark);
     }
 
     /** 해당 과제와 연결된 마감 표시 일정 블록을 찾아 삭제. */
     private void removeDeadlineMark(String assignmentBlockId) {
-        String tag = DEADLINE_TAG_PREFIX + assignmentBlockId + "]";
+        String tag = DEADLINE_TAG_PREFIX + assignmentBlockId + DEADLINE_TAG_SUFFIX;
         for (ScheduleBlock b : scheduleBlockDAO.findAll()) {
             if (tag.equals(b.getMemo())) {
                 scheduleBlockDAO.deleteById(b.getId());
