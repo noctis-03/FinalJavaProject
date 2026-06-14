@@ -164,7 +164,7 @@ table th:nth-child(3), table td:nth-child(3) { width: 62%; }
 table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
-### v0.8 — 외부 API
+### v0.8 — 외부 API 및 사이트
 
 | FR 번호 | 간단 설명 | 관련 소스 | 구현 여부 |
 |:---:|:---|:---|:---:|
