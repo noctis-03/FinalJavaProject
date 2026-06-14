@@ -26,13 +26,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-/**
- * 무한 캔버스 패널 (FR-08, FR-12) — 노드 그래프 연결 지원.
- *
- * <p>실행 블록 출력 포트(우측 ●)는 항상 표시된다. 출력 포트를 끌어 파일/링크 블록
- * 위에서 놓으면 연결되고, 입력 포트(좌측 ●)를 끌면 그 블록에 붙은 연결을 분리하거나
- * 다른 대상으로 재연결한다. 연결선 우클릭으로도 해제할 수 있다.
- */
 public class InfiniteCanvasPanel extends JPanel {
 
     private static final Color BG        = new Color(0xFAFAFC);
@@ -54,13 +47,11 @@ public class InfiniteCanvasPanel extends JPanel {
     private double dragOriginWorldX;
     private double dragOriginWorldY;
 
-    // 출력 포트 드래그(새 연결)
     private AutomationBlockComponent portSource;
     private Point portDragCurrent;
 
-    // 입력 포트 드래그(기존 연결 분리/재연결)
-    private AutomationBlockComponent unplugSource;   // 분리 대상 연결의 실행 블록
-    private CanvasBlockComponent     unplugTarget;   // 원래 연결돼 있던 입력 블록
+    private AutomationBlockComponent unplugSource;
+    private CanvasBlockComponent     unplugTarget;
     private Point unplugCurrent;
 
     private Consumer<Point2D> onCreateRequest;
@@ -73,7 +64,6 @@ public class InfiniteCanvasPanel extends JPanel {
     private Consumer<AutomationBlockComponent> onRunRequest;
     private BiConsumer<AutomationBlockComponent, CanvasBlockComponent> onConnectRequest;
     private EdgeContextHandler onEdgeContextMenu;
-    /** 연결 분리: (실행 블록, 분리할 입력 블록). */
     private BiConsumer<AutomationBlockComponent, CanvasBlockComponent> onDisconnectRequest;
 
     @FunctionalInterface
@@ -136,6 +126,11 @@ public class InfiniteCanvasPanel extends JPanel {
         repaint();
     }
 
+    /** 현재 캔버스에 있는 블록 목록(읽기 전용 복사본). 컨트롤러가 일괄 삭제 시 사용. */
+    public List<CanvasBlockComponent> snapshotBlocks() {
+        return new ArrayList<>(blocks);
+    }
+
     public CanvasBlockComponent getSelected() { return selected; }
 
     private CanvasBlockComponent findByBlockId(String blockId) {
@@ -172,7 +167,6 @@ public class InfiniteCanvasPanel extends JPanel {
 
                 lastPoint = e.getPoint();
 
-                // 1) 출력 포트(우측 ●) 드래그 시작 → 새 연결
                 AutomationBlockComponent outHit = outputPortAt(e.getX(), e.getY());
                 if (outHit != null) {
                     portSource = outHit;
@@ -183,7 +177,6 @@ public class InfiniteCanvasPanel extends JPanel {
                     return;
                 }
 
-                // 2) 입력 포트(좌측 ●) 드래그 시작 → 기존 연결 분리/재연결
                 CanvasBlockComponent inHit = inputPortAt(e.getX(), e.getY());
                 if (inHit != null) {
                     AutomationBlockComponent src = sourceConnectedTo(inHit);
@@ -284,13 +277,11 @@ public class InfiniteCanvasPanel extends JPanel {
                     CanvasBlockComponent dropTarget = topBlockExcept(e.getX(), e.getY(), unplugSource);
                     boolean reconnectable = (dropTarget != null) && dropTarget.hasInputPort();
                     if (reconnectable && dropTarget != unplugTarget) {
-                        // 다른 대상 위에 놓음 → 기존 분리 후 새 대상으로 연결
                         if (onDisconnectRequest != null) onDisconnectRequest.accept(unplugSource, unplugTarget);
                         if (onConnectRequest != null)    onConnectRequest.accept(unplugSource, dropTarget);
                     } else if (reconnectable && dropTarget == unplugTarget) {
-                        // 같은 자리에 도로 놓음 → 변화 없음
+                        // 변화 없음
                     } else {
-                        // 빈 곳에 놓음 → 연결 분리
                         if (onDisconnectRequest != null) onDisconnectRequest.accept(unplugSource, unplugTarget);
                     }
                     unplugSource = null;
@@ -421,6 +412,14 @@ public class InfiniteCanvasPanel extends JPanel {
                 }
             }
         });
+
+        // 단축키: Home 키 → 중심 복귀
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_HOME, 0), "recenterCanvas");
+        am.put("recenterCanvas", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                recenter();
+            }
+        });
     }
 
     private void select(CanvasBlockComponent c) {
@@ -445,7 +444,6 @@ public class InfiniteCanvasPanel extends JPanel {
         return null;
     }
 
-    /** 출력 포트(우측 ●) 위인지. 포트가 항상 보이므로 포트 원 영역으로 판정. */
     private AutomationBlockComponent outputPortAt(int sx, int sy) {
         for (int i = blocks.size() - 1; i >= 0; i--) {
             if (blocks.get(i) instanceof AutomationBlockComponent ac
@@ -456,7 +454,6 @@ public class InfiniteCanvasPanel extends JPanel {
         return null;
     }
 
-    /** 입력 포트(좌측 ●) 위인지. 입력 포트를 가진 블록만. */
     private CanvasBlockComponent inputPortAt(int sx, int sy) {
         for (int i = blocks.size() - 1; i >= 0; i--) {
             CanvasBlockComponent c = blocks.get(i);
@@ -469,13 +466,12 @@ public class InfiniteCanvasPanel extends JPanel {
         return null;
     }
 
-    /** 주어진 입력 블록에 연결된 실행 블록 중 가장 위(마지막) 것을 찾는다. */
     private AutomationBlockComponent sourceConnectedTo(CanvasBlockComponent target) {
         AutomationBlockComponent found = null;
         for (CanvasBlockComponent c : blocks) {
             if (c instanceof AutomationBlockComponent ac
                     && ac.getConnectedBlockIds().contains(target.getBlockId())) {
-                found = ac; // 마지막으로 발견된 것
+                found = ac;
             }
         }
         return found;
@@ -489,7 +485,6 @@ public class InfiniteCanvasPanel extends JPanel {
         return null;
     }
 
-    // ===== 엣지 히트 =====
     private static final class EdgeHit {
         final AutomationBlockComponent source;
         final CanvasBlockComponent target;
@@ -522,14 +517,60 @@ public class InfiniteCanvasPanel extends JPanel {
         return Math.hypot(px - cx, py - cy);
     }
 
-    // ===== 줌 버튼용 =====
+    // ===== 줌 / 중심 복귀 =====
     public void zoomIn()  { centerZoom(1.2); }
     public void zoomOut() { centerZoom(1 / 1.2); }
+
     public void resetView() {
         viewport.resetZoom();
         viewport.setOffset(0, 0);
         repaint();
     }
+
+    /**
+     * "중심 복귀": 현재 캔버스에 있는 블록들이 모두 가운데 보이도록 줌·오프셋을 다시 잡는다.
+     * 블록이 없으면 원점(0,0) + 기본 줌으로 돌아간다.
+     */
+    public void recenter() {
+        if (blocks.isEmpty()) {
+            resetView();
+            return;
+        }
+
+        double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
+        for (CanvasBlockComponent c : blocks) {
+            double x1 = c.getWorldX();
+            double y1 = c.getWorldY();
+            double x2 = x1 + c.getWorldW();
+            double y2 = y1 + c.getWorldH();
+            if (x1 < minX) minX = x1;
+            if (y1 < minY) minY = y1;
+            if (x2 > maxX) maxX = x2;
+            if (y2 > maxY) maxY = y2;
+        }
+
+        int viewW = Math.max(1, getWidth());
+        int viewH = Math.max(1, getHeight());
+        double contentW = Math.max(1, maxX - minX);
+        double contentH = Math.max(1, maxY - minY);
+
+        // 80% 여백
+        double scaleX = (viewW * 0.85) / contentW;
+        double scaleY = (viewH * 0.85) / contentH;
+        double scale = Math.min(scaleX, scaleY);
+        viewport.setScale(scale);
+
+        double cx = (minX + maxX) / 2.0;
+        double cy = (minY + maxY) / 2.0;
+        // 화면 중앙에 cx,cy 가 오도록 offset 결정
+        double newOffsetX = cx - (viewW / 2.0) / viewport.getScale();
+        double newOffsetY = cy - (viewH / 2.0) / viewport.getScale();
+        viewport.setOffset(newOffsetX, newOffsetY);
+
+        repaint();
+    }
+
     private void centerZoom(double factor) {
         viewport.zoomAt(getWidth() / 2, getHeight() / 2, factor);
         repaint();
@@ -543,10 +584,8 @@ public class InfiniteCanvasPanel extends JPanel {
 
         gridRenderer.paint(g2, viewport, getWidth(), getHeight());
 
-        // 1) 엣지 — 단, UNPLUG 중인 연결은 임시선으로 대체하므로 생략
         paintEdges(g2);
 
-        // 2) 블록
         for (CanvasBlockComponent c : blocks) {
             c.paint(g2, viewport);
         }
@@ -554,25 +593,21 @@ public class InfiniteCanvasPanel extends JPanel {
         boolean dragging = (mode == Mode.PORT_DRAG && portSource != null);
         boolean unplugging = (mode == Mode.UNPLUG && unplugSource != null);
 
-        // 3) 입력 포트: 새 연결 드래그(PORT_DRAG) 중에만 대상들 표시 (가)
         if (dragging) {
             for (CanvasBlockComponent c : blocks) {
                 if (c != portSource) c.paintInputPort(g2, viewport, true);
             }
         }
-        // UNPLUG 중에도 재연결 대상 후보를 보여주면 직관적
         if (unplugging) {
             for (CanvasBlockComponent c : blocks) {
                 if (c.hasInputPort()) c.paintInputPort(g2, viewport, true);
             }
         }
 
-        // 4) 출력 포트(우측 ●) — 항상 표시
         for (CanvasBlockComponent c : blocks) {
             if (c instanceof AutomationBlockComponent ac) ac.paintPort(g2, viewport, true);
         }
 
-        // 5) 임시 선
         if (dragging && portDragCurrent != null) {
             Point p1 = portSource.portCenterScreen(viewport);
             Point end = portDragCurrent;
@@ -581,7 +616,6 @@ public class InfiniteCanvasPanel extends JPanel {
             drawTempEdge(g2, p1.x, p1.y, end.x, end.y);
         }
         if (unplugging && unplugCurrent != null) {
-            // 분리 중: 실행 블록 출력 포트 → 현재 마우스(또는 다른 대상 입력 포트)
             Point p1 = unplugSource.portCenterScreen(viewport);
             Point end = unplugCurrent;
             CanvasBlockComponent host = inputPortHostAt(unplugCurrent.x, unplugCurrent.y, unplugSource);
@@ -609,7 +643,6 @@ public class InfiniteCanvasPanel extends JPanel {
             for (String id : ac.getConnectedBlockIds()) {
                 CanvasBlockComponent t = findByBlockId(id);
                 if (t == null) continue;
-                // 지금 분리 중인 바로 그 연결은 임시선으로 대체 → 본선 생략
                 if (mode == Mode.UNPLUG && ac == unplugSource && t == unplugTarget) continue;
                 Point p2 = t.inputPortCenterScreen(viewport);
                 g2.setColor(EDGE);
