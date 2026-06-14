@@ -91,7 +91,7 @@
 | 요구사항 번호 | 간단 설명                                | 관련 소스                                                                                                                                                                     | 구현 여부 |
 |:---:|:-------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----:|
 | FR-08 | 무한 캔버스 보드 (팬/줌, 격자 스냅, 자유 배치, 자동 저장) | `view/canvas/InfiniteCanvasPanel.java`, `view/canvas/CanvasViewport.java`, `view/canvas/GridRenderer.java`, `service/CanvasService.java`, `model/canvas/CanvasState.java` | ☑ 완성  |
-| FR-16 | ~~필기 기능~~ -> 블록 우선순위 시스템             | 구현                                                                                                                                                                        |  ☑ 완성   |
+| FR-16 |캔버스 블록 우선순위 (1·2·3 단계, 선택 시 떠 있는 1/2/3 메뉴, 같은 우선순위 내 최근 클릭 우선) | `view/canvas/InfiniteCanvasPanel.java`, `view/canvas/CanvasBlockComponent.java` | ☑ 완성 |
 
 <br>
 
@@ -111,14 +111,6 @@
 | FR-14 | 날씨 위젯 (Open-Meteo 사용, 대전 현재/내일 표시) | `service/WeatherService.java`, `view/NavigationPanel.java` | ☑ 완성 |
 | FR-15 | 대학 정보 블록 (외부 링크 즐겨찾기로 대체 구현 — 홈페이지/공지 등 빠른 접근) | `service/ExternalLinkService.java`, `view/calendar/ExternalLinkPanel.java`, `view/calendar/ExternalLinkEditDialog.java`, `model/ExternalLink.java` | ◇ 부분완성 |
 
-<br>
-
-### 1.9 마일스톤 v0.9 - 블럭의 우선순위
-
-| 요구사항 번호 | 간단 설명 | 관련 소스 | 구현 여부 |
-|:---:|:---|:---|:---:|
-| 추가-01 | 캔버스 블록 우선순위 (1·2·3 단계, 선택 시 떠 있는 1/2/3 메뉴, 같은 우선순위 내 최근 클릭 우선) | `view/canvas/InfiniteCanvasPanel.java`, `view/canvas/CanvasBlockComponent.java` | ☑ 완성 |
-| 추가-02 | 자동화 연결선 최상위 렌더링 (블록 위로 항상 보이도록) | `view/canvas/InfiniteCanvasPanel.java` | ☑ 완성 |
 
 <br>
 
