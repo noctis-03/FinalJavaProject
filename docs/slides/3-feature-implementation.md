@@ -39,11 +39,13 @@ table th:nth-child(2), table td:nth-child(2) { width: 70%; }
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v0.2 — 캘린더 코어
@@ -55,11 +57,13 @@ table th:nth-child(4), table td:nth-child(4) { width: 12%; }
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v0.3 — 과목 및 시간표
@@ -73,11 +77,13 @@ table th:nth-child(4), table td:nth-child(4) { width: 12%; }
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v0.4 — 블록 시스템
@@ -92,28 +98,32 @@ table th:nth-child(4), table td:nth-child(4) { width: 12%; }
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v0.5 — 미리블록 및 DnD
 
 | FR 번호 | 간단 설명 | 관련 소스 | 구현 여부 |
-|:---:|:---|:---|:---:|
+|:---:|:---|:---:|:---:|
 | FR-02 | 미리블록 템플릿 (생성/삭제, 캘린더 배치, 템플릿-인스턴스 분리) | `PresetBlock.java`, `PresetBlockService.java`, `PresetBlockPanel.java`, `PresetBlockCreateDialog.java` | ☑ 완성 |
 | FR-11 | 드래그 앤 드롭 조작 (미리블록→캘린더, 트리 파일→캔버스, 팔레트→캔버스) | `BlockDragSource.java`, `BlockTransferable.java`, `CalendarDropTarget.java`, `CanvasDropTarget.java` | ☑ 완성 |
 
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v0.6 — 무한 캔버스
@@ -126,11 +136,13 @@ table th:nth-child(4), table td:nth-child(4) { width: 12%; }
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v0.7 — 자동화 시스템
@@ -143,11 +155,13 @@ table th:nth-child(4), table td:nth-child(4) { width: 12%; }
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v0.8 — 외부 API
@@ -160,11 +174,13 @@ table th:nth-child(4), table td:nth-child(4) { width: 12%; }
 ---
 
 <style scoped>
-table { font-size: 0.82rem; }
-table th:nth-child(1), table td:nth-child(1) { width: 12%; }
-table th:nth-child(2), table td:nth-child(2) { width: 20%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table th:nth-child(4), table td:nth-child(4) { width: 12%; }
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 10%; }
+table th:nth-child(2), table td:nth-child(2) { width: 18%; }
+table th:nth-child(3), table td:nth-child(3) { width: 62%; }
+table th:nth-child(4), table td:nth-child(4) { width: 10%; }
 </style>
 
 ### v1.0 — 통합 및 완성
@@ -341,6 +357,14 @@ table th:nth-child(4), table td:nth-child(4) { width: 12%; }
 ---
 
 ## 통합 구현
+
+<style scoped>
+section { padding: 40px 40px 60px; }
+table { font-size: 0.72rem; width: 100%; table-layout: fixed; border-collapse: collapse; }
+table th, table td { word-break: break-all; overflow-wrap: break-word; padding: 4px 6px; }
+table th:nth-child(1), table td:nth-child(1) { width: 12%; }
+table th:nth-child(2), table td:nth-child(2) { width: 88%; }
+</style>
 
 | 항목 | 내용 |
 |:---:|:---|
