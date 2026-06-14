@@ -21,11 +21,6 @@ import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * 상단 네비게이션 바.
- * 좌측: 앱 타이틀 + 캘린더/과목 탭.
- * 우측: [새로고침 컬럼] + 현재 날씨 카드 + 내일 날씨 카드 (대전 기준).
- */
 public class NavigationPanel extends JPanel {
 
     public static final String TAB_CALENDAR = "CALENDAR";
@@ -36,6 +31,8 @@ public class NavigationPanel extends JPanel {
     private static final Color ACTIVE_FG    = Color.WHITE;
     private static final Color INACTIVE_BG  = new Color(0xE8E8EC);
     private static final Color INACTIVE_FG  = new Color(0x333333);
+    private static final Color DANGER_BG    = new Color(0xFFE4E4);
+    private static final Color DANGER_FG    = new Color(0xB42318);
 
     private static final Color CARD_BG         = Color.WHITE;
     private static final Color CARD_BORDER     = new Color(0xE3E5EB);
@@ -48,17 +45,15 @@ public class NavigationPanel extends JPanel {
 
     private final JButton calendarTabButton = new JButton("📅 캘린더");
     private final JButton subjectTabButton  = new JButton("📚 과목");
+    private final JButton resetAppButton    = new JButton("⟲ 초기화");
     private final JLabel  appTitle          = new JLabel("Blople");
 
-    // "현재" 카드
     private final JLabel nowIcon = new JLabel("·");
     private final JLabel nowTemp = new JLabel("--°");
 
-    // "내일" 카드
     private final JLabel tmrIcon  = new JLabel("·");
     private final JLabel tmrRange = new JLabel("--° / --°");
 
-    // 새로고침 영역
     private final JLabel updatedLabel = new JLabel(" ");
     private final JButton refreshBtn  = new JButton("⟳ 갱신");
 
@@ -82,7 +77,6 @@ public class NavigationPanel extends JPanel {
         refreshTimer.start();
     }
 
-    // ===== 좌측 =====
     private JPanel buildLeft() {
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 18));
         left.setOpaque(false);
@@ -93,14 +87,16 @@ public class NavigationPanel extends JPanel {
 
         styleTabButton(calendarTabButton);
         styleTabButton(subjectTabButton);
+        styleDangerButton(resetAppButton);
+        resetAppButton.setToolTipText("모든 학기/과목/과제/캔버스 데이터를 삭제합니다");
 
         left.add(appTitle);
         left.add(calendarTabButton);
         left.add(subjectTabButton);
+        left.add(resetAppButton);
         return left;
     }
 
-    // ===== 우측: 새로고침 + 날씨 위젯 =====
     private JPanel buildRight() {
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 14));
         right.setOpaque(false);
@@ -113,22 +109,18 @@ public class NavigationPanel extends JPanel {
         wrap.setOpaque(false);
         wrap.setLayout(new BoxLayout(wrap, BoxLayout.X_AXIS));
 
-        // 새로고침 컬럼 (왼쪽)
         wrap.add(buildRefreshColumn());
         wrap.add(Box.createHorizontalStrut(8));
 
-        // 현재 카드
         JPanel nowCard = buildCard("현재  ·  대전", true, nowIcon, nowTemp);
         wrap.add(nowCard);
         wrap.add(Box.createHorizontalStrut(6));
 
-        // 내일 카드
         JPanel tmrCard = buildCard("내일", false, tmrIcon, tmrRange);
         wrap.add(tmrCard);
         return wrap;
     }
 
-    /** 좌측 새로고침 컬럼: 위 = "HH:mm 갱신", 아래 = "⟳ 갱신" 버튼. 오른쪽 정렬. */
     private JPanel buildRefreshColumn() {
         JPanel col = new JPanel();
         col.setOpaque(false);
@@ -155,7 +147,6 @@ public class NavigationPanel extends JPanel {
         return col;
     }
 
-    /** 카드: 아이콘 + 한 줄 온도. 설명 문구는 생략. */
     private JPanel buildCard(String header, boolean accent,
                              JLabel iconLabel, JLabel bigLabel) {
         JPanel card = new JPanel();
@@ -191,7 +182,6 @@ public class NavigationPanel extends JPanel {
         return card;
     }
 
-    // ===== 날씨 갱신 =====
     private void refreshWeather() {
         nowIcon.setText("·");
         nowTemp.setText("불러오는 중…");
@@ -239,6 +229,17 @@ public class NavigationPanel extends JPanel {
         btn.setPreferredSize(new Dimension(120, 36));
     }
 
+    private void styleDangerButton(JButton btn) {
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(96, 36));
+        btn.setBackground(DANGER_BG);
+        btn.setForeground(DANGER_FG);
+        btn.setOpaque(true);
+    }
+
     public void setActiveTab(String tabName) {
         boolean calendarActive = TAB_CALENDAR.equals(tabName);
         applyTabStyle(calendarTabButton, calendarActive);
@@ -257,6 +258,13 @@ public class NavigationPanel extends JPanel {
 
     public void setOnSubjectTabClick(ActionListener listener) {
         subjectTabButton.addActionListener(listener);
+    }
+
+    /** "프로그램 초기화" 버튼 클릭 콜백. */
+    public void setOnResetAppClick(ActionListener listener) {
+        // 기존 리스너 제거 후 새로 등록 (중복 방지)
+        for (var l : resetAppButton.getActionListeners()) resetAppButton.removeActionListener(l);
+        if (listener != null) resetAppButton.addActionListener(listener);
     }
 
     public void dispose() {
