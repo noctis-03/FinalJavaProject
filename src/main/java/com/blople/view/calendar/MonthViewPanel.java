@@ -1,6 +1,7 @@
 package com.blople.view.calendar;
 
 import com.blople.model.block.ScheduleBlock;
+import com.blople.service.AssignmentService;
 
 import javax.swing.JPanel;
 import java.awt.Color;
@@ -12,7 +13,6 @@ import java.awt.RenderingHints;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,10 +21,13 @@ import java.util.function.Consumer;
 /**
  * 월간 뷰 렌더링 패널 (FR-01).
  *
- * <p>6주 × 7일 격자를 그리고, 각 날짜 셀 안에 해당 날짜에 걸치는 일정 블록을
- * 최대 N개까지 작은 막대로 표시한다. 초과분은 "+k" 로 요약한다.
- *
- * <p>요일 규약: 0=일 … 6=토.
+ * <p>v0.8 변경:
+ * <ul>
+ *   <li>과목 시간표에서 자동 생성된 ScheduleBlock(subject_id 가 있고 마감 표시 태그가 없는 것)은
+ *       월간 뷰에서 숨긴다.</li>
+ *   <li>과제 마감 표시(memo 의 [ASSIGNMENT_DEADLINE:..] 태그)는 그대로 표시.</li>
+ *   <li>일반 사용자 등록 일정(subject_id 가 null)도 그대로 표시.</li>
+ * </ul>
  */
 public class MonthViewPanel extends JPanel {
 
@@ -70,11 +73,27 @@ public class MonthViewPanel extends JPanel {
     }
 
     public void setBlocks(List<ScheduleBlock> blocks) {
-        this.blocks = (blocks != null) ? blocks : new ArrayList<>();
+        if (blocks == null) {
+            this.blocks = new ArrayList<>();
+        } else {
+            // 월간 뷰에서는 과목 시간표는 제외, 과제 마감 표시와 일반 일정만 남긴다.
+            this.blocks = new ArrayList<>();
+            for (ScheduleBlock b : blocks) {
+                if (isSubjectScheduleOnly(b)) continue; // 과목 일정 제외
+                this.blocks.add(b);
+            }
+        }
         repaint();
     }
 
-    /** 그리드 첫 칸에 해당하는 날짜 (이전 달 일부 포함). */
+    /** "과목 시간표에서 만들어진 일정" 인지 판정.
+     *  subject_id 가 있고, 과제 마감 표시 태그가 없으면 과목 일정으로 본다. */
+    private static boolean isSubjectScheduleOnly(ScheduleBlock b) {
+        if (b == null) return false;
+        if (AssignmentService.isDeadlineMark(b)) return false;
+        return b.getSubjectId() != null && !b.getSubjectId().isBlank();
+    }
+
     private LocalDate gridStartDate() {
         LocalDate first = LocalDate.of(year, month, 1);
         int offset = first.getDayOfWeek() == DayOfWeek.SUNDAY ? 0 : first.getDayOfWeek().getValue();
@@ -139,15 +158,12 @@ public class MonthViewPanel extends JPanel {
                     g2.fillRect(x, y, cw, ch);
                 }
 
-                // 날짜 숫자
                 g2.setFont(new Font("SansSerif", Font.BOLD, 12));
                 g2.setColor(inMonth ? dayColor(col) : OUT_TEXT);
                 g2.drawString(String.valueOf(date.getDayOfMonth()), x + 6, y + 16);
 
-                // 블록 막대
                 drawDayBlocks(g2, date, x, y, cw, ch);
 
-                // 셀 테두리
                 g2.setColor(GRID_LINE);
                 g2.drawRect(x, y, cw, ch);
             }
@@ -195,13 +211,25 @@ public class MonthViewPanel extends JPanel {
         }
     }
 
-    /** 해당 날짜에 걸치는 블록만 추림 (시작~종료 사이 포함). */
+    /**
+     * 해당 날짜에 걸치는 블록만 추림.
+     * <p>23:59 → 00:00 같은 표시가 다음 날에 잘못 표시되지 않도록,
+     * "종료 시각이 그날의 00:00" 인 경우는 그 전날까지로 본다.
+     */
     private List<ScheduleBlock> blocksOn(LocalDate date) {
         List<ScheduleBlock> result = new ArrayList<>();
         for (ScheduleBlock b : blocks) {
-            LocalDate s = LocalDateTime.parse(b.getStartDatetime(), TS_FMT).toLocalDate();
-            LocalDate e = LocalDateTime.parse(b.getEndDatetime(), TS_FMT).toLocalDate();
-            if (!date.isBefore(s) && !date.isAfter(e)) {
+            LocalDateTime s = LocalDateTime.parse(b.getStartDatetime(), TS_FMT);
+            LocalDateTime e = LocalDateTime.parse(b.getEndDatetime(),   TS_FMT);
+
+            LocalDate sDate = s.toLocalDate();
+            LocalDate eDate = e.toLocalDate();
+            // 종료가 다음 날 00:00 이면 그 날은 점유하지 않는 것으로 본다(반열림 구간).
+            if (e.toLocalTime().equals(java.time.LocalTime.MIDNIGHT) && eDate.isAfter(sDate)) {
+                eDate = eDate.minusDays(1);
+            }
+
+            if (!date.isBefore(sDate) && !date.isAfter(eDate)) {
                 result.add(b);
             }
         }
