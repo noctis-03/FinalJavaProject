@@ -18,13 +18,19 @@ footer: '자바프로그래밍 | 20220540 김가온'
 
 ## 마일스톤 구성
 
+<style scoped>
+table { font-size: 0.78rem; width: 60%; margin: 0 auto; }
+table th:nth-child(1), table td:nth-child(1) { width: 25%; }
+table th:nth-child(2), table td:nth-child(2) { width: 75%; }
+</style>
+
 | 버전 | 마일스톤 |
 |:---:|:---|
 | v0.1 | 기반 구조 및 DB |
 | v0.2 | 캘린더 코어 |
 | v0.3 | 과목 및 시간표 |
 | v0.4 | 블록 시스템 |
-| v0.5 | 미리블록 |
+| v0.5 | 미리블록 및 DnD |
 | v0.6 | 무한 캔버스 |
 | v0.7 | 자동화 시스템 |
 | v0.8 | 외부 API |
