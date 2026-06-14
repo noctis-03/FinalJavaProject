@@ -7,21 +7,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * SQLite 연결을 관리하는 싱글톤.
+ * SQLite 연결 관리 싱글톤.
  *
- * <p>모든 DB 접근의 진입점이며, 아래 책임을 가진다.
- * <ul>
- *   <li>JDBC 드라이버 로딩</li>
- *   <li>DB 파일이 존재하지 않으면 디렉터리·파일 자동 생성</li>
- *   <li>외래키(FOREIGN KEY) 제약 활성화</li>
- *   <li>{@link Connection} 발급 (호출자가 직접 close 책임)</li>
- *   <li>최초 부팅 시 {@link SchemaInitializer} 호출로 스키마 초기화</li>
- * </ul>
- *
- * <p>주의: SQLite 는 동시 쓰기에 약하므로 본 프로젝트에서는
- * 매번 짧은 Connection 을 열고 닫는 패턴(connection-per-call)을 사용한다.
+ * <p>v0.8 추가: {@link #wipeAllData()} — 모든 사용자 데이터를 비우고
+ * 스키마를 재생성한다 (DB 전체 초기화, 요구 #6).
  */
 public final class DatabaseManager {
 
@@ -30,7 +23,6 @@ public final class DatabaseManager {
 
     private DatabaseManager() {
         try {
-            // SQLite JDBC 드라이버는 SPI 로 자동 로딩되지만 안전을 위해 명시적 로딩
             Class.forName("org.sqlite.JDBC");
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(
@@ -45,31 +37,22 @@ public final class DatabaseManager {
         return instance;
     }
 
-    /**
-     * 최초 1회 호출 — 데이터 디렉터리 확인 및 스키마 생성.
-     * App.java 의 main 에서 호출하는 것을 권장한다.
-     */
     public synchronized void initialize() {
         if (initialized) return;
 
-        // data 디렉터리 보장
         File dir = new File(Constants.DB_DIRECTORY);
         if (!dir.exists() && !dir.mkdirs()) {
             throw new IllegalStateException("DB 디렉터리 생성 실패: " + dir.getAbsolutePath());
         }
 
-        // 스키마 초기화
         SchemaInitializer initializer = new SchemaInitializer(this);
         initializer.initializeAllTables();
 
         initialized = true;
-        System.out.println("[DatabaseManager] 초기화 완료 → " + new File(Constants.DB_DIRECTORY, Constants.DB_FILE_NAME).getAbsolutePath());
+        System.out.println("[DatabaseManager] 초기화 완료 → "
+                + new File(Constants.DB_DIRECTORY, Constants.DB_FILE_NAME).getAbsolutePath());
     }
 
-    /**
-     * 새 Connection 발급. 외래키 제약을 활성화한 상태로 반환한다.
-     * 호출자는 try-with-resources 등으로 반드시 닫아야 한다.
-     */
     public Connection getConnection() throws SQLException {
         Connection conn = DriverManager.getConnection(Constants.DB_URL);
         enableForeignKeys(conn);
@@ -82,7 +65,6 @@ public final class DatabaseManager {
         }
     }
 
-    /** 단순 백업: 현재 DB 파일을 지정된 경로로 복사. */
     public void backup(String destPath) {
         File src  = new File(Constants.DB_DIRECTORY, Constants.DB_FILE_NAME);
         File dest = new File(destPath);
@@ -96,5 +78,41 @@ public final class DatabaseManager {
 
     public boolean isInitialized() {
         return initialized;
+    }
+
+    /**
+     * 모든 사용자 테이블을 DROP 한 후 스키마를 다시 생성한다.
+     * (학기/과목/시간표/과제/캔버스/자동화/외부 링크 모두 사라짐 — 요구 #6)
+     */
+    public synchronized void wipeAllData() {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            // 1) sqlite_master 에서 사용자 테이블 목록 조회 (sqlite_* 제외)
+            List<String> tables = new ArrayList<>();
+            try (var rs = stmt.executeQuery(
+                    "SELECT name FROM sqlite_master " +
+                            "WHERE type='table' AND name NOT LIKE 'sqlite_%'")) {
+                while (rs.next()) tables.add(rs.getString(1));
+            }
+
+            // 2) 외래키 잠깐 끄고 모두 DROP
+            stmt.execute("PRAGMA foreign_keys = OFF");
+            conn.setAutoCommit(false);
+            for (String t : tables) {
+                stmt.execute("DROP TABLE IF EXISTS \"" + t + "\"");
+            }
+            conn.commit();
+            stmt.execute("PRAGMA foreign_keys = ON");
+
+        } catch (SQLException e) {
+            throw new RuntimeException("DB 초기화(드롭) 실패: " + e.getMessage(), e);
+        }
+
+        // 3) 스키마 재생성
+        SchemaInitializer initializer = new SchemaInitializer(this);
+        initializer.initializeAllTables();
+
+        System.out.println("[DatabaseManager] 전체 초기화 완료");
     }
 }
