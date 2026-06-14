@@ -37,8 +37,10 @@ import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.ComponentOrientation;
 import java.awt.Point;
 import java.awt.Window;
 import java.awt.geom.Point2D;
@@ -48,16 +50,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 과목 페이지 컨트롤러 (FR-03 ~ FR-13).
- *
- * <p>v0.7+ 추가:
- * <ul>
- *   <li>시간표 입력 다이얼로그에서 학기(연도/1·2학기) 선택 (요구 #2)</li>
- *   <li>시간표 항목 수정 / 삭제 — 마지막 항목이면 과목까지 삭제 옵션 (요구 #7)</li>
- *   <li>시간표 단계 충돌 시 추가 거부 (요구 #8)</li>
- * </ul>
- */
 public class SubjectController {
 
     private final SubjectService    subjectService;
@@ -106,6 +98,9 @@ public class SubjectController {
         view.setOnOpenFile(this::onOpenFile);
         view.setOnDeleteFile(this::onDeleteFile);
 
+        view.setOnCanvasRecenter(this::onCanvasRecenter);
+        view.setOnCanvasClearAll(this::onCanvasClearAll);
+
         InfiniteCanvasPanel canvas = view.getCanvasPanel();
         canvas.setOnCreateRequest(this::onCanvasCreateText);
         canvas.setOnEditRequest(this::onCanvasDoubleClickBlock);
@@ -115,7 +110,6 @@ public class SubjectController {
         canvas.setOnBlockContextMenu(this::showBlockContextMenu);
         canvas.setOnBlockDroppedOnBlock(this::onBlockDroppedOnBlock);
 
-        // === 노드 그래프 연결 ===
         canvas.setOnRunRequest(this::executeAutomation);
         canvas.setOnConnectRequest(this::onPortConnect);
         canvas.setOnEdgeContextMenu(this::onEdgeContextMenu);
@@ -129,20 +123,17 @@ public class SubjectController {
         reloadSubjects();
     }
 
-    // ===== 노드 그래프: 입력 포트 드래그로 연결 분리 =====
     private void onPortDisconnect(AutomationBlockComponent source, CanvasBlockComponent target) {
         automationService.disconnectBlock(source.getRuleId(), target.getBlockId());
         automationService.getRule(source.getRuleId()).ifPresent(source::setRule);
         view.getCanvasPanel().repaint();
     }
 
-
     private void reloadSubjects() {
         List<Subject> subjects = subjectService.getSubjectsBySemester(activeSemester.getId());
         view.setSubjects(subjects);
     }
 
-    // ===== 과목 선택 → 헤더 + 캔버스 로드 =====
     private void onSubjectSelect(Subject subject) {
         this.selectedSubject = subject;
         view.showSubjectInHeader(subject);
@@ -182,13 +173,12 @@ public class SubjectController {
     }
 
     // ============================================================
-    //  시간표 입력 다이얼로그 (요구 #2, #7, #8)
+    //  시간표 다이얼로그
     // ============================================================
     private void openTimetableDialog() {
         Window owner = SwingUtilities.getWindowAncestor(view);
         TimetableInputDialog dialog = new TimetableInputDialog(owner);
 
-        // 현재 활성 학기 정보로 학기 셀렉터 초기화
         int curYear;
         Semester.Term curTerm;
         if (activeSemester != null) {
@@ -203,26 +193,20 @@ public class SubjectController {
         }
         dialog.setSemesterSelection(curYear, curTerm);
 
-        // 학기 변경 → 해당 학기 보장/활성화하고 목록 다시 로드
         dialog.setOnSemesterChange((year, term) -> {
             activeSemester = subjectService.ensureSemester(year, term, true);
             reloadDialogList(dialog);
             reloadSubjects();
-            // 학기가 바뀌면 캔버스 헤더의 과목 표시도 초기화
             selectedSubject = null;
             view.showSubjectInHeader(null);
             view.getCanvasPanel().setBlocks(new ArrayList<>());
         });
 
-        // 추가
         dialog.setOnAdd(form -> handleTimetableAdd(dialog, form));
 
-        // 수정
-        dialog.setOnEntryEdit((entryId, subjectId, name, prof, room, color, dow, st, et) -> {
-            handleTimetableEdit(dialog, entryId, subjectId, name, prof, room, color, dow, st, et);
-        });
+        dialog.setOnEntryEdit((entryId, subjectId, name, prof, room, color, dow, st, et) ->
+                handleTimetableEdit(dialog, entryId, subjectId, name, prof, room, color, dow, st, et));
 
-        // 삭제
         dialog.setOnEntryDelete((entryId, subjectId, alsoDeleteSubject) -> {
             try {
                 timetableService.deleteEntry(entryId);
@@ -259,10 +243,8 @@ public class SubjectController {
     private void handleTimetableAdd(TimetableInputDialog dialog,
                                     TimetableInputDialog.TimetableForm form) {
         try {
-            // 1) 시간표 충돌 사전 검사 — 다른 어떤 과목과도 같은 요일·시간대가 겹치면 추가 거부 (요구 #8)
             Timetable candidate = new Timetable(
                     "dummy", form.dayOfWeek(), form.startTime(), form.endTime());
-            // hasConflictWith 는 같은 id 가 아닐 때만 충돌로 보므로 임시 id 그대로 사용
             List<Timetable> conflicts =
                     timetableService.detectConflicts(candidate, activeSemester.getId());
             if (!conflicts.isEmpty()) {
@@ -276,7 +258,6 @@ public class SubjectController {
                 return;
             }
 
-            // 2) 과목 생성(중복 이름이면 기존 과목 그대로 사용) + 시간표 항목 추가
             Subject subject = subjectService.createSubject(
                     activeSemester.getId(), form.subjectName(),
                     form.professor(), form.classroom(), form.colorHex());
@@ -297,7 +278,6 @@ public class SubjectController {
                                      String name, String prof, String room, String color,
                                      int dow, String st, String et) {
         try {
-            // 1) 충돌 사전 검사 — 자기 자신은 제외하고 검사 (요구 #8)
             Timetable candidate = Timetable.reconstruct(entryId, subjectId, dow, st, et);
             List<Timetable> conflicts =
                     timetableService.detectConflicts(candidate, activeSemester.getId());
@@ -312,7 +292,6 @@ public class SubjectController {
                 return;
             }
 
-            // 2) 과목 정보 갱신
             subjectService.getSubjectById(subjectId).ifPresent(sub -> {
                 sub.setName(name);
                 sub.setProfessor(prof);
@@ -321,14 +300,12 @@ public class SubjectController {
                 subjectService.updateSubject(sub);
             });
 
-            // 3) 시간표 항목 갱신 (같은 id 유지)
             Timetable updated = Timetable.reconstruct(entryId, subjectId, dow, st, et);
             timetableService.updateEntry(updated);
 
             reloadDialogList(dialog);
             reloadSubjects();
 
-            // 선택된 과목이 수정 대상이면 헤더도 갱신
             if (selectedSubject != null && selectedSubject.getId().equals(subjectId)) {
                 subjectService.getSubjectById(subjectId).ifPresent(sub -> {
                     selectedSubject = sub;
@@ -378,7 +355,7 @@ public class SubjectController {
     }
 
     // ============================================================
-    //  파일 (트리)
+    //  파일
     // ============================================================
     private void onAddFile(Subject subject) {
         this.selectedSubject = subject;
@@ -423,7 +400,7 @@ public class SubjectController {
     }
 
     // ============================================================
-    //  캔버스 생성
+    //  캔버스 생성/드롭/이동/삭제
     // ============================================================
     private void onCanvasCreateText(Point2D world) {
         if (selectedSubject == null) return;
@@ -439,7 +416,6 @@ public class SubjectController {
             return;
         }
 
-        // 트리에서 파일/링크를 드롭한 지점이 실행 블록 위면 연결 (보조 경로)
         if (type == BlockType.FILE || type == BlockType.LINK) {
             AutomationBlockComponent autoComp = automationBlockAtWorld(world);
             if (autoComp != null) {
@@ -464,21 +440,18 @@ public class SubjectController {
         return (hit instanceof AutomationBlockComponent ac) ? ac : null;
     }
 
-    // ===== 노드 그래프: 포트 드래그로 연결 =====
     private void onPortConnect(AutomationBlockComponent autoComp, CanvasBlockComponent target) {
         BlockType type;
         if (target instanceof FileBlockComponent)      type = BlockType.FILE;
         else if (target instanceof LinkBlockComponent) type = BlockType.LINK;
-        else return; // 파일/링크만 연결 가능
-
+        else return;
         connectToAutomation(autoComp, target.getBlockId(), type);
     }
 
-    // ===== 노드 그래프: 엣지 우클릭으로 해제 =====
     private void onEdgeContextMenu(AutomationBlockComponent source,
                                    CanvasBlockComponent target, Point screen) {
-        JPopupMenu menu = new JPopupMenu();
-        JMenuItem disconnect = new JMenuItem("연결 끊기");
+        JPopupMenu menu = newPopupMenu();
+        JMenuItem disconnect = newMenuItem("연결 끊기");
         disconnect.addActionListener(e -> {
             automationService.disconnectBlock(source.getRuleId(), target.getBlockId());
             automationService.getRule(source.getRuleId()).ifPresent(source::setRule);
@@ -488,7 +461,6 @@ public class SubjectController {
         menu.show(view.getCanvasPanel(), screen.x, screen.y);
     }
 
-    // ===== 캔버스 내부 블록을 다른 블록 위에 놓음 (보조 연결 경로) =====
     private void onBlockDroppedOnBlock(CanvasBlockComponent dragged,
                                        CanvasBlockComponent target,
                                        double originWorldX, double originWorldY) {
@@ -498,14 +470,11 @@ public class SubjectController {
             BlockType type = (dragged instanceof FileBlockComponent)
                     ? BlockType.FILE : BlockType.LINK;
             connectToAutomation(autoComp, dragged.getBlockId(), type);
-
-            // 끌린 블록은 원래 위치로 복귀 (실행 블록 위에 가려지지 않게)
             dragged.setWorldPos(originWorldX, originWorldY);
             view.getCanvasPanel().repaint();
             return;
         }
 
-        // 연결 대상이 아니면 일반 이동으로 처리 (놓은 자리에 격자 스냅하여 저장)
         Point2D snapped = view.getCanvasPanel().getGridRenderer()
                 .snap(dragged.getWorldX(), dragged.getWorldY());
         dragged.setWorldPos(snapped.getX(), snapped.getY());
@@ -571,7 +540,6 @@ public class SubjectController {
                 placed.block(), placed.rule(), st.getPosX(), st.getPosY(), st.getWidth(), st.getHeight()));
     }
 
-    // ===== 더블클릭: 메모/링크=편집, 파일=열기, 자동화=연결 목록 보기 =====
     private void onCanvasDoubleClickBlock(CanvasBlockComponent comp) {
         if (comp instanceof FileBlockComponent fc) {
             openFileFromCanvas(fc);
@@ -601,7 +569,6 @@ public class SubjectController {
         }
     }
 
-    // ===== 편집 (메모/링크) =====
     private void onCanvasEditBlock(CanvasBlockComponent comp) {
         Window owner = SwingUtilities.getWindowAncestor(view);
 
@@ -638,7 +605,6 @@ public class SubjectController {
         }
     }
 
-    // ===== 이동/리사이즈 저장 =====
     private void onCanvasBlockMoved(CanvasBlockComponent comp) {
         if (selectedSubject == null) return;
         canvasService.findStateByBlock(comp.getBlockId()).ifPresentOrElse(
@@ -658,7 +624,6 @@ public class SubjectController {
                 });
     }
 
-    // ===== 삭제 =====
     private void onCanvasDeleteBlock(CanvasBlockComponent comp) {
         Window owner = SwingUtilities.getWindowAncestor(view);
 
@@ -696,19 +661,66 @@ public class SubjectController {
         view.getCanvasPanel().repaint();
     }
 
-    /** 주어진 블록을 캔버스의 모든 실행 블록 규칙에서 연결 해제. */
     private void disconnectBlockFromAllRules(String blockId) {
         view.getCanvasPanel().forEachAutomation(ac ->
                 automationService.disconnectBlock(ac.getRuleId(), blockId));
     }
 
-    /** 캔버스의 모든 실행 블록 규칙을 DB에서 다시 읽어 컴포넌트에 반영. */
     private void refreshAllAutomationRules() {
         view.getCanvasPanel().forEachAutomation(ac ->
                 automationService.getRule(ac.getRuleId()).ifPresent(ac::setRule));
     }
 
-    // ===== 우클릭 메뉴 =====
+    // ============================================================
+    //  캔버스 헤더 액션 — 중심 복귀 / 캔버스 전체 비우기 (요구 #3, #4)
+    // ============================================================
+    private void onCanvasRecenter() {
+        InfiniteCanvasPanel canvas = view.getCanvasPanel();
+        canvas.requestFocusInWindow();
+        canvas.recenter();
+    }
+
+    private void onCanvasClearAll() {
+        if (selectedSubject == null) {
+            JOptionPane.showMessageDialog(
+                    SwingUtilities.getWindowAncestor(view),
+                    "먼저 과목을 선택하세요.",
+                    "안내", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        Window owner = SwingUtilities.getWindowAncestor(view);
+        int ok = JOptionPane.showConfirmDialog(owner,
+                "'" + selectedSubject.getName() + "' 과목의 캔버스에 있는\n"
+                        + "메모/링크/파일배치/실행 블록을 모두 삭제할까요?\n"
+                        + "(원본 파일과 과제는 영향받지 않습니다)",
+                "캔버스 비우기", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (ok != JOptionPane.YES_OPTION) return;
+
+        InfiniteCanvasPanel canvas = view.getCanvasPanel();
+        // 1) 실행(자동화) 블록부터 정리 — 규칙/연결 캐스케이드 정리됨
+        for (CanvasBlockComponent c : canvas.snapshotBlocks()) {
+            if (c instanceof AutomationBlockComponent) {
+                automationService.deleteAutomationBlock(c.getBlockId());
+            }
+        }
+
+        // 2) 텍스트/링크/파일배치 정리
+        List<TextBlock> texts = canvasService.loadTextBlocks(selectedSubject.getId())
+                .stream().map(CanvasService.Placed::block).toList();
+        List<LinkBlock> links = canvasService.loadLinkBlocks(selectedSubject.getId())
+                .stream().map(CanvasService.Placed::block).toList();
+        List<FileBlock> files = canvasService.loadFileBlocks(selectedSubject.getId())
+                .stream().map(CanvasService.Placed::block).toList();
+        canvasService.clearCanvasForSubject(selectedSubject.getId(), texts, links, files);
+
+        canvas.clearBlocks();
+        canvas.resetView();
+        canvas.repaint();
+    }
+
+    // ============================================================
+    //  우클릭 메뉴 — 정렬 보정 (요구 #5)
+    // ============================================================
     private void showEmptyContextMenu(Point screen, Point2D world) {
         if (selectedSubject == null) {
             JOptionPane.showMessageDialog(
@@ -717,13 +729,13 @@ public class SubjectController {
                     "안내", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = newPopupMenu();
 
-        JMenuItem addText = new JMenuItem("📝 메모 추가");
+        JMenuItem addText = newMenuItem("📝 메모 추가");
         addText.addActionListener(e -> createTextAt(world.getX(), world.getY()));
-        JMenuItem addLink = new JMenuItem("🔗 링크 추가");
+        JMenuItem addLink = newMenuItem("🔗 링크 추가");
         addLink.addActionListener(e -> createLinkAt(world.getX(), world.getY()));
-        JMenuItem addAuto = new JMenuItem("⚡ 실행 블록 추가");
+        JMenuItem addAuto = newMenuItem("⚡ 실행 블록 추가");
         addAuto.addActionListener(e -> createAutomationAt(world.getX(), world.getY()));
 
         menu.add(addText);
@@ -733,46 +745,63 @@ public class SubjectController {
     }
 
     private void showBlockContextMenu(CanvasBlockComponent comp, Point screen) {
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = newPopupMenu();
 
         if (comp instanceof FileBlockComponent fc) {
-            JMenuItem open = new JMenuItem("📂 파일 열기");
+            JMenuItem open = newMenuItem("📂 파일 열기");
             open.addActionListener(e -> openFileFromCanvas(fc));
             open.setEnabled(fc.getModel().isFileValid());
             menu.add(open);
             menu.addSeparator();
-            JMenuItem remove = new JMenuItem("캔버스에서 치우기");
+            JMenuItem remove = newMenuItem("캔버스에서 치우기");
             remove.addActionListener(e -> onCanvasDeleteBlock(comp));
             menu.add(remove);
 
         } else if (comp instanceof AutomationBlockComponent ac) {
-            JMenuItem run = new JMenuItem("▶ 실행 (한 번에 열기)");
+            JMenuItem run = newMenuItem("▶ 실행 (한 번에 열기)");
             run.addActionListener(e -> executeAutomation(ac));
             menu.add(run);
-            JMenuItem manage = new JMenuItem("연결 목록 보기/제거");
+            JMenuItem manage = newMenuItem("연결 목록 보기/제거");
             manage.addActionListener(e -> showAutomationConnections(ac));
             menu.add(manage);
             menu.addSeparator();
-            JMenuItem delete = new JMenuItem("실행 블록 삭제");
+            JMenuItem delete = newMenuItem("실행 블록 삭제");
             delete.addActionListener(e -> onCanvasDeleteBlock(comp));
             menu.add(delete);
 
         } else {
-            JMenuItem edit = new JMenuItem("편집");
+            JMenuItem edit = newMenuItem("편집");
             edit.addActionListener(e -> onCanvasEditBlock(comp));
             menu.add(edit);
             if (comp instanceof LinkBlockComponent lc) {
-                JMenuItem openLink = new JMenuItem("🔗 브라우저에서 열기");
+                JMenuItem openLink = newMenuItem("🔗 브라우저에서 열기");
                 openLink.addActionListener(e -> openLinkInBrowser(lc));
                 menu.add(openLink);
             }
             menu.addSeparator();
-            JMenuItem delete = new JMenuItem("삭제");
+            JMenuItem delete = newMenuItem("삭제");
             delete.addActionListener(e -> onCanvasDeleteBlock(comp));
             menu.add(delete);
         }
 
         menu.show(view.getCanvasPanel(), screen.x, screen.y);
+    }
+
+    /** 좌측 정렬 + LTR 방향을 강제한 팝업 메뉴 생성기. */
+    private static JPopupMenu newPopupMenu() {
+        JPopupMenu menu = new JPopupMenu();
+        menu.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        return menu;
+    }
+
+    /** 좌측 정렬·LTR 강제 메뉴 아이템 — 오른쪽 치우침 문제 해결. */
+    private static JMenuItem newMenuItem(String text) {
+        JMenuItem item = new JMenuItem(text);
+        item.setHorizontalAlignment(SwingConstants.LEFT);
+        item.setHorizontalTextPosition(SwingConstants.RIGHT);
+        item.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        item.setIconTextGap(6);
+        return item;
     }
 
     private void showAutomationConnections(AutomationBlockComponent ac) {
